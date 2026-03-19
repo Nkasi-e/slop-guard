@@ -101,10 +101,12 @@ export function resolveLlmSettings(): LlmSettings {
 
   // Default model is selected based on provider unless explicitly overridden.
   const model =
+    process.env.SLOP_GUARD_LLM_MODEL ??
     config.get<string>(
       "model",
       usingOpenRouter ? "anthropic/claude-3.5-sonnet" : "gpt-4o-mini"
-    ) ?? (usingOpenRouter ? "anthropic/claude-3.5-sonnet" : "gpt-4o-mini");
+    ) ??
+    (usingOpenRouter ? "anthropic/claude-3.5-sonnet" : "gpt-4o-mini");
 
   return {
     enabled,

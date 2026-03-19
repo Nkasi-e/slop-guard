@@ -118,6 +118,17 @@ Every issue reported by the engine includes:
 
 This is the equivalent of asking a senior engineer: “Anything obviously sloppy here?” — but in <1 second and without waiting on a PR.
 
+Screenshots:
+
+![Cursor example](./extension/media/cursorshot.png)
+
+![VS Code example](./extension/media/vscodeshot.png)
+
+Optional demo video:
+
+<video controls width="100%" src="./extension/media/selectionrec.mov"></video>
+<video controls width="100%" src="./extension/media/file%20analysicrec.mov"></video>
+
 ### Auto-on-save workflow
 
 - **Use case**: You want a passive guardrail that runs every time you save, so small slop never ships.
@@ -162,6 +173,9 @@ Users only need to enable `slopguard.llm.enabled`. Configure one of the followin
 - `OPENROUTER_API_KEY` (uses OpenRouter)
 - `OPENAI_API_KEY` (uses OpenAI)
 - `SLOP_GUARD_LLM_API_KEY` (uses `SLOP_GUARD_LLM_ENDPOINT` if set, otherwise OpenRouter)
+
+Optional:
+- `SLOP_GUARD_LLM_MODEL` (override the default model id)
 
 ---
 
