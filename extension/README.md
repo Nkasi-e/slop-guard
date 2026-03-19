@@ -37,33 +37,69 @@ It explains where complexity risk appears and suggests practical optimization di
 
 Your team gets recommendations that are actionable, not generic.
 
-## Developer experience
+## Quick start (how to use the editor)
 
-- Command: `SlopGuard: Analyze Selection`
-- Editor context menu integration
-- Shortcut:
-  - macOS: `Cmd+Alt+A`
-  - Windows/Linux: `Ctrl+Alt+A`
-- Auto-analyze on idle (enabled by default)
-- Scopes: `auto`, `selection`, `function`, `file`
+### 1) Select code (or rely on auto-detect)
 
-## Zero-setup runtime model
+- Manual: select a code section in the editor.
+- Auto-detect: if nothing is selected and your scope is `auto`, SlopGuard tries to analyze the current function/block around your cursor.
 
-SlopGuard resolves engines in this order:
+### 2) Run SlopGuard
+
+Open the Command Palette and run:
+- `SlopGuard: Analyze Selection`
+
+### 3) Read results
+
+SlopGuard writes findings to the `SlopGuard` output panel.
+Each issue includes a title, explanation, confidence, and (when available) algorithm/trade-off analysis.
+
+Images:
+![Cursor usage](./media/cursorshot.png)
+
+![VS Code usage](./media/vscodeshot.png)
+
+Optional demo video:
+<video controls width="100%" src="./media/selectionrec.mov"></video>
+<video controls width="100%" src="./media/file%20analysicrec.mov"></video>
+
+## Auto-analysis on save (optional)
+
+Auto-analysis is disabled by default.
+
+To enable it:
+1. Set `slopguard.autoAnalyzeOnSave` to `true`
+2. Choose `slopguard.analysisScope`:
+   - `auto`: selection -> current function/block -> file
+   - `selection`: only selection
+   - `function`: current function/block
+   - `file`: whole file
+
+Optional: if you want toast notifications, set `slopguard.showAutoNotifications` to `true`.
+
+## Engine resolution (no extra steps for MVP)
+
+SlopGuard locates the Rust engine in this order:
 
 1. `slopguard.enginePath` (if configured)
-2. bundled native runtime for your platform
-3. workspace binary / cargo fallback (dev mode)
-4. bundled WASM fallback
+2. `engine/target/debug|release/slopguard-engine` under your workspace (or one directory up)
+3. if it finds `engine/Cargo.toml`, it runs `cargo run --quiet --manifest-path <engine/Cargo.toml>`
 
-Result: most users can install and run with no Rust toolchain setup.
+## Optional LLM narrative layer (disabled by default)
 
-## Optional LLM narrative layer
+Core analysis is local and deterministic.
+LLM enrichment refines explanations and algorithm commentary, but you must explicitly enable it.
 
-Core analysis is local and deterministic.  
-Optional LLM enrichment can improve wording and coaching tone, but it is not required for functionality.
+Enable:
+- `slopguard.llm.enabled = true`
 
-If LLM is unavailable, SlopGuard still returns full static-analysis output from the engine.
+LLM credentials are read from environment variables (not from editor settings).
+Provide one:
+- `OPENROUTER_API_KEY` (OpenRouter)
+- `OPENAI_API_KEY` (OpenAI)
+- `SLOP_GUARD_LLM_API_KEY` (+ optional `SLOP_GUARD_LLM_ENDPOINT`)
+
+If the LLM call fails, SlopGuard falls back to raw Rust-engine results.
 
 ## Ideal for teams that care about outcomes
 

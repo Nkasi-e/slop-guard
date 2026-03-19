@@ -12,6 +12,12 @@ It is designed to complement (and in many cases replace) tools like Coderabbit-s
 
 ---
 
+Screenshots:
+
+![Cursor example](./extension/media/cursorshot.png)
+
+![VS Code example](./extension/media/vscodeshot.png)
+
 ## Why engineering teams use SlopGuard
 
 - **Shift-left code review**  
@@ -162,6 +168,9 @@ Users only need to enable `slopguard.llm.enabled`. Configure one of the followin
 - `OPENROUTER_API_KEY` (uses OpenRouter)
 - `OPENAI_API_KEY` (uses OpenAI)
 - `SLOP_GUARD_LLM_API_KEY` (uses `SLOP_GUARD_LLM_ENDPOINT` if set, otherwise OpenRouter)
+
+Optional:
+- `SLOP_GUARD_LLM_MODEL` (override the default model id)
 
 ---
 
