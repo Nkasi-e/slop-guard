@@ -1,0 +1,96 @@
+{
+  "name": "slopguard",
+  "displayName": "SlopGuard",
+  "description": "Analyze selected code and suggest senior-engineer improvements.",
+  "version": "0.0.1",
+  "publisher": "Emmanuel Nkasi",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:slopguard.analyzeSelection",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "slopguard.analyzeSelection",
+        "title": "SlopGuard: Analyze Selection"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "slopguard.analyzeSelection",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "slopguard.analyzeSelection",
+          "group": "slopguard",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SlopGuard",
+      "properties": {
+        "slopguard.enginePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the SlopGuard engine binary."
+        },
+        "slopguard.llm.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable LLM enrichment of engine findings."
+        },
+        "slopguard.autoAnalyzeOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically analyze code when files are saved."
+        },
+        "slopguard.analysisScope": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "selection", "function", "file"],
+          "description": "Scope used for analysis. Auto prefers selection, then current block, then file."
+        },
+        "slopguard.showAutoNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show notifications for auto analysis runs."
+        },
+        "slopguard.autoAnalyzeOnIdle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run SlopGuard automatically after you stop typing (Copilot-style). Results appear in the SlopGuard output panel."
+        },
+        "slopguard.autoAnalyzeOnIdleDelayMs": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "Delay in ms after last keystroke before auto-analyze runs (when autoAnalyzeOnIdle is enabled)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.30",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.8.3"
+  }
+}

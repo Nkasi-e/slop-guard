@@ -1,0 +1,4 @@
+extension/node_modules/
+extension/out/
+engine/target/
+*.vsix
