@@ -1,7 +1,7 @@
 {
   "name": "slopguard",
   "displayName": "SlopGuard",
-  "description": "Analyze selected code and suggest senior-engineer improvements.",
+  "description": "Local-first static AI reviewer for VS Code: catches code slop, complexity hotspots, and maintainability issues before PRs.",
   "version": "0.0.1",
   "publisher": "nkasi-labs",
   "author": "Emmanuel Nkasi",
