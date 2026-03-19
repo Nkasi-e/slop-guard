@@ -7,7 +7,7 @@ VSCE := npx @vscode/vsce@2.26.0
 WASI_SYSROOT ?= /opt/homebrew/opt/wasi-libc/share/wasi-sysroot
 CC_WASM ?= clang --target=wasm32-wasip1 --sysroot=$(WASI_SYSROOT)
 
-.PHONY: help deps compile engine wasm vsce package repack bump-patch bump-minor bump-major install-vsix publish-info clean-vsix
+.PHONY: help deps compile engine wasm vsce package repack bump-patch bump-minor bump-major release-patch release-minor release-major install-vsix publish-info clean-vsix
 
 help:
 	@echo "SlopGuard deployment helpers"
@@ -23,6 +23,9 @@ help:
 	@echo "  make bump-patch   Bump extension patch version (no git tag)"
 	@echo "  make bump-minor   Bump extension minor version (no git tag)"
 	@echo "  make bump-major   Bump extension major version (no git tag)"
+	@echo "  make release-patch Bump patch + package VSIX (one command)"
+	@echo "  make release-minor Bump minor + package VSIX (one command)"
+	@echo "  make release-major Bump major + package VSIX (one command)"
 	@echo "  make install-vsix Install packaged VSIX locally (requires 'code' CLI)"
 	@echo "  make publish-info Show manual publish steps"
 	@echo "  make clean-vsix   Remove generated VSIX files"
@@ -60,6 +63,12 @@ bump-minor:
 
 bump-major:
 	cd "$(EXT_DIR)" && npm version major --no-git-tag-version
+
+release-patch: bump-patch package
+
+release-minor: bump-minor package
+
+release-major: bump-major package
 
 install-vsix: package
 	code --install-extension "$$(cd "$(EXT_DIR)" && ls -t slopguard-*.vsix | head -1)"
