@@ -12,6 +12,12 @@ It is designed to complement (and in many cases replace) tools like Coderabbit-s
 
 ---
 
+Screenshots:
+
+![Cursor example](./extension/media/cursorshot.png)
+
+![VS Code example](./extension/media/vscodeshot.png)
+
 ## Why engineering teams use SlopGuard
 
 - **Shift-left code review**  
@@ -117,17 +123,6 @@ Every issue reported by the engine includes:
    - Optionally shows a notification with the number of issues found.
 
 This is the equivalent of asking a senior engineer: “Anything obviously sloppy here?” — but in <1 second and without waiting on a PR.
-
-Screenshots:
-
-![Cursor example](./extension/media/cursorshot.png)
-
-![VS Code example](./extension/media/vscodeshot.png)
-
-Optional demo video:
-
-<video controls width="100%" src="./extension/media/selectionrec.mov"></video>
-<video controls width="100%" src="./extension/media/file%20analysicrec.mov"></video>
 
 ### Auto-on-save workflow
 
