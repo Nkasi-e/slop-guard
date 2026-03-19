@@ -9,7 +9,38 @@ export function resolveEngineCommand(): EngineCommand | null {
     return { command: configured, args: [] };
   }
 
+  // 1) Prefer a bundled engine binary inside the extension itself.
+  // This allows marketplace users to "install and use" without Rust or cargo.
   const binaryName = process.platform === "win32" ? "slopguard-engine.exe" : "slopguard-engine";
+  const extensionRoot = path.join(__dirname, "..");
+
+  type PlatformKey = "darwin-arm64" | "darwin-x64" | "linux-x64" | "win32-x64" | "win32-arm64";
+  const platformKey = `${process.platform}-${process.arch}` as PlatformKey;
+
+  const runtimeFolder: string | undefined = (() => {
+    switch (platformKey) {
+      case "darwin-arm64":
+        return "darwin-arm64";
+      case "darwin-x64":
+        return "darwin-x64";
+      case "linux-x64":
+        return "linux-x64";
+      case "win32-x64":
+        return "win32-x64";
+      case "win32-arm64":
+        return "win32-arm64";
+      default:
+        return undefined;
+    }
+  })();
+
+  if (runtimeFolder) {
+    const bundled = path.join(extensionRoot, "runtime", runtimeFolder, binaryName);
+    if (fs.existsSync(bundled)) {
+      return { command: bundled, args: [] };
+    }
+  }
+
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!workspaceRoot) {
     return null;

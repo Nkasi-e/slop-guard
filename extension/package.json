@@ -4,6 +4,23 @@
   "description": "Analyze selected code and suggest senior-engineer improvements.",
   "version": "0.0.1",
   "publisher": "Emmanuel Nkasi",
+  "author": "Emmanuel Nkasi",
+  "license": "MIT",
+  "homepage": "https://github.com/Nkasi-e/slop-guard",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nkasi-e/slop-guard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Nkasi-e/slop-guard/issues"
+  },
+  "keywords": [
+    "code",
+    "analysis",
+    "review",
+    "senior-engineer",
+    "improvements"
+  ],
   "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.85.0"

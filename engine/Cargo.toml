@@ -3,14 +3,36 @@ name = "slopguard-engine"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "slopguard-engine"
+path = "src/main.rs"
+
+[lib]
+name = "slopguard_engine"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["ast"]
+ast = [
+    "dep:tree-sitter",
+    "dep:tree-sitter-javascript",
+    "dep:tree-sitter-typescript",
+    "dep:tree-sitter-python",
+    "dep:tree-sitter-go",
+    "dep:tree-sitter-rust",
+    "dep:tree-sitter-ruby",
+    "dep:tree-sitter-java",
+]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tree-sitter = "0.22"
-tree-sitter-javascript = "0.21"
-tree-sitter-typescript = "0.21"
-tree-sitter-python = "0.21"
-tree-sitter-go = "0.21"
-tree-sitter-rust = "0.21"
-tree-sitter-ruby = "0.21"
-tree-sitter-java = "0.21"
+tree-sitter = { version = "0.22", optional = true }
+tree-sitter-javascript = { version = "0.21", optional = true }
+tree-sitter-typescript = { version = "0.21", optional = true }
+tree-sitter-python = { version = "0.21", optional = true }
+tree-sitter-go = { version = "0.21", optional = true }
+tree-sitter-rust = { version = "0.21", optional = true }
+tree-sitter-ruby = { version = "0.21", optional = true }
+tree-sitter-java = { version = "0.21", optional = true }

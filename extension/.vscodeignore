@@ -1,5 +1,20 @@
-out/test/**
 src/**
-.vscode/**
-tsconfig.json
+out/test/**
 **/*.map
+.vscode/**
+.vscode-test/**
+tsconfig.json
+*.tsbuildinfo
+
+# Monorepo/development files not needed in published extension
+../engine/**
+../examples/**
+../README.md
+../CHANGELOG.md
+../.gitignore
+
+# Node/package manager metadata not required at runtime
+node_modules/.bin/**
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml

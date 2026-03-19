@@ -1,3 +1,4 @@
+#[cfg(feature = "ast")]
 mod ast;
 mod complexity;
 mod idioms;
@@ -5,6 +6,7 @@ mod patterns;
 
 use crate::protocol::{AnalyzeRequest, Issue};
 use std::collections::HashMap;
+#[cfg(feature = "ast")]
 use ast::AstAnalyzer;
 use complexity::ComplexityAnalyzer;
 use idioms::IdiomaticAnalyzer;
@@ -15,14 +17,15 @@ trait Analyzer {
 }
 
 pub fn run_all_analyzers(request: &AnalyzeRequest) -> Vec<Issue> {
-    let analyzers: Vec<Box<dyn Analyzer>> = vec![
-        // AST analyzer runs first and provides language-aware structural checks.
-        Box::new(AstAnalyzer),
-        // Complexity analyzer adds heuristic complexity + repeated logic signals.
+    #[cfg_attr(not(feature = "ast"), allow(unused_mut))]
+    let mut analyzers: Vec<Box<dyn Analyzer>> = vec![
         Box::new(ComplexityAnalyzer),
         Box::new(PatternAnalyzer),
         Box::new(IdiomaticAnalyzer),
     ];
+
+    #[cfg(feature = "ast")]
+    analyzers.insert(0, Box::new(AstAnalyzer));
 
     let all_issues: Vec<Issue> = analyzers
         .into_iter()

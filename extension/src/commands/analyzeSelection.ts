@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { resolveAnalysisSettings, resolveEngineCommand, resolveLlmSettings } from "../config";
-import { runEngine } from "../engineClient";
+import { resolveAnalysisSettings, resolveLlmSettings } from "../config";
+import { runEngineHybrid } from "../engineClient";
 import { enrichIssuesWithLlm } from "../llmClient";
 import { renderIssues } from "../output";
 import { resolveAnalysisTarget } from "../scope";
@@ -31,19 +31,11 @@ export async function analyzeSelection(
     return;
   }
 
-  const engineCommand = resolveEngineCommand();
-  if (!engineCommand) {
-    vscode.window.showErrorMessage(
-      "SlopGuard: Engine not found. Build `engine` first or set slopguard.enginePath."
-    );
-    return;
-  }
-
   output.clear();
   output.appendLine(`Analyzing ${target.label}...`);
 
   try {
-    const response = await runEngine(engineCommand, {
+    const response = await runEngineHybrid({
       code: target.code,
       languageId: editor.document.languageId,
     });
