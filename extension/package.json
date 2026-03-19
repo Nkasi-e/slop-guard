@@ -2,7 +2,7 @@
   "name": "slopguard",
   "displayName": "SlopGuard",
   "description": "Local-first static AI reviewer for VS Code: catches code slop, complexity hotspots, and maintainability issues before PRs.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "nkasi-labs",
   "author": "Emmanuel Nkasi",
   "license": "MIT",
@@ -78,7 +78,12 @@
         "slopguard.analysisScope": {
           "type": "string",
           "default": "auto",
-          "enum": ["auto", "selection", "function", "file"],
+          "enum": [
+            "auto",
+            "selection",
+            "function",
+            "file"
+          ],
           "description": "Scope used for analysis. Auto prefers selection, then current block, then file."
         },
         "slopguard.showAutoNotifications": {
