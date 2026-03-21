@@ -1,6 +1,11 @@
 export type AlgorithmAnalysis = {
   timeComplexity: string;
   spaceComplexity: string;
+  /** Target time complexity after a typical refactor (indexing, single pass, etc.). */
+  suggestedTimeComplexity?: string;
+  suggestedSpaceComplexity?: string;
+  /** One-line headline: memory vs speed, clarity vs performance, etc. */
+  tradeOffSummary?: string;
   tradeOffs?: string[];
   optimizationHint?: string;
 };

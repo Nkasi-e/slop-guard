@@ -322,6 +322,9 @@ The engine responds with:
       "algorithmAnalysis": {
         "timeComplexity": "O(n^2)",
         "spaceComplexity": "O(n)",
+        "suggestedTimeComplexity": "O(n) typical (single pass + O(1) lookups)",
+        "suggestedSpaceComplexity": "O(n) auxiliary for an index/map",
+        "tradeOffSummary": "Trade-off: more memory for the index to avoid repeated inner scans.",
         "tradeOffs": [
           "Using a hash-based index can reduce repeated lookups but increases memory usage."
         ],

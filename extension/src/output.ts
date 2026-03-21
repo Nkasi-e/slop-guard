@@ -1,11 +1,66 @@
 import * as vscode from "vscode";
-import { EngineIssue } from "./types";
+import { AlgorithmAnalysis, EngineIssue } from "./types";
 
 export const OUTPUT_CHANNEL_NAME = "SlopGuard";
 
 type RenderContext = {
   sourceFile?: string;
 };
+
+function padCell(value: string, width: number): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= width) {
+    return trimmed.padEnd(width, " ");
+  }
+  return `${trimmed.slice(0, Math.max(0, width - 1))}…`;
+}
+
+/** Side-by-side style scorecard for algorithmic issues (educational USP). */
+function renderAlgorithmScorecard(output: vscode.OutputChannel, a: AlgorithmAnalysis): void {
+  output.appendLine("  ─── Complexity scorecard (current → suggested) ───");
+  const suggestedTime = a.suggestedTimeComplexity ?? "—";
+  const suggestedSpace = a.suggestedSpaceComplexity ?? "—";
+  const col = 26;
+  output.appendLine(
+    `  ${padCell("Dimension", 11)} │ ${padCell("Current (as written)", col)} │ Suggested direction`
+  );
+  output.appendLine(
+    `  ${padCell("Time", 11)} │ ${padCell(a.timeComplexity, col)} │ ${suggestedTime}`
+  );
+  output.appendLine(
+    `  ${padCell("Space", 11)} │ ${padCell(a.spaceComplexity, col)} │ ${suggestedSpace}`
+  );
+  if (a.tradeOffSummary) {
+    output.appendLine(`  ▸ ${a.tradeOffSummary}`);
+  }
+  if (a.optimizationHint) {
+    output.appendLine(`  How: ${a.optimizationHint}`);
+  }
+  const details = a.tradeOffs ?? [];
+  if (details.length > 0) {
+    output.appendLine("  Trade-offs (detail):");
+    for (const line of details) {
+      output.appendLine(`    • ${line}`);
+    }
+  }
+}
+
+/** Maintainability / readability issues: “why” without Big-O table. */
+function renderApproachScorecard(output: vscode.OutputChannel, issue: EngineIssue): void {
+  if (!issue.suggestion) {
+    return;
+  }
+  output.appendLine("  ─── Approach scorecard (why / how) ───");
+  const headline = issue.explanation[0] ?? issue.issue;
+  output.appendLine(`  Current:   ${headline}`);
+  output.appendLine(`  Suggested: ${issue.suggestion}`);
+  if (issue.explanation.length > 1) {
+    output.appendLine("  Why it matters:");
+    for (let i = 1; i < issue.explanation.length; i++) {
+      output.appendLine(`    • ${issue.explanation[i]}`);
+    }
+  }
+}
 
 export function renderIssues(
   output: vscode.OutputChannel,
@@ -31,12 +86,24 @@ export function renderIssues(
     if (issue.issueType) {
       output.appendLine(`  Type: ${issue.issueType}`);
     }
-    for (const reason of issue.explanation) {
-      output.appendLine(`  - ${reason}`);
+
+    if (issue.algorithmAnalysis) {
+      renderAlgorithmScorecard(output, issue.algorithmAnalysis);
+      output.appendLine("  Context:");
+      for (const reason of issue.explanation) {
+        output.appendLine(`    • ${reason}`);
+      }
+      if (issue.suggestion) {
+        output.appendLine(`  Suggestion: ${issue.suggestion}`);
+      }
+    } else if (issue.suggestion) {
+      renderApproachScorecard(output, issue);
+    } else {
+      for (const reason of issue.explanation) {
+        output.appendLine(`  - ${reason}`);
+      }
     }
-    if (issue.suggestion) {
-      output.appendLine(`  Suggestion: ${issue.suggestion}`);
-    }
+
     if (issue.snippet) {
       const start = issue.snippetStartLine;
       const end = issue.snippetEndLine;
@@ -55,16 +122,6 @@ export function renderIssues(
         } else {
           output.appendLine(`    ${text}`);
         }
-      }
-    }
-    if (issue.algorithmAnalysis) {
-      output.appendLine(`  Time: ${issue.algorithmAnalysis.timeComplexity}`);
-      output.appendLine(`  Space: ${issue.algorithmAnalysis.spaceComplexity}`);
-      if (issue.algorithmAnalysis.optimizationHint) {
-        output.appendLine(`  Optimization: ${issue.algorithmAnalysis.optimizationHint}`);
-      }
-      for (const tradeOff of issue.algorithmAnalysis.tradeOffs ?? []) {
-        output.appendLine(`  Trade-off: ${tradeOff}`);
       }
     }
   }

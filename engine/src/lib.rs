@@ -3,6 +3,7 @@ mod protocol;
 
 use analysis::run_all_analyzers;
 use protocol::{AnalyzeRequest, AnalyzeResponse};
+use std::sync::Mutex;
 use std::{slice, str};
 
 pub fn analyze_json(input: &str) -> Result<String, String> {
@@ -35,35 +36,31 @@ pub extern "C" fn dealloc(ptr: *mut u8, len: usize) {
 }
 
 // ---------------------------------------------------------------------------
-// Static output buffer — avoids complex struct-return ABI issues with WASM.
-// JS calls: analyze(input_ptr, input_len) → output_len (negative = error)
-// JS reads: get_output_ptr() → pointer to output bytes inside WASM memory
+// Output buffer — avoids struct-return ABI issues with WASM.
+// JS: analyze(ptr, len) → len; then get_output_ptr() → read bytes until next analyze().
+// Pointer remains valid until the next analyze() replaces the buffer (single-threaded WASM).
 // ---------------------------------------------------------------------------
 
-static mut OUTPUT_BUF: Vec<u8> = Vec::new();
+static OUTPUT_BUF: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
 /// Runs analysis on the JSON input at `ptr`/`len`.
 /// Returns the byte length of the JSON output (positive = ok, negative = error).
 /// The output bytes are available via `get_output_ptr()` until the next call.
 #[no_mangle]
 pub extern "C" fn analyze(ptr: *const u8, len: usize) -> i32 {
+    let mut out = OUTPUT_BUF.lock().unwrap_or_else(|e| e.into_inner());
+
     if ptr.is_null() || len == 0 {
-        let msg = b"empty input";
-        unsafe {
-            OUTPUT_BUF = msg.to_vec();
-        }
-        return -(msg.len() as i32);
+        *out = b"empty input".to_vec();
+        return -(out.len() as i32);
     }
 
     let input = unsafe { slice::from_raw_parts(ptr, len) };
     let input_str = match str::from_utf8(input) {
         Ok(s) => s,
         Err(_) => {
-            let msg = b"invalid UTF-8";
-            unsafe {
-                OUTPUT_BUF = msg.to_vec();
-            }
-            return -(msg.len() as i32);
+            *out = b"invalid UTF-8".to_vec();
+            return -(out.len() as i32);
         }
     };
 
@@ -71,17 +68,14 @@ pub extern "C" fn analyze(ptr: *const u8, len: usize) -> i32 {
         Ok(json) => {
             let bytes = json.into_bytes();
             let out_len = bytes.len() as i32;
-            unsafe {
-                OUTPUT_BUF = bytes;
-            }
+            *out = bytes;
             out_len
         }
         Err(err) => {
             let bytes = err.into_bytes();
-            unsafe {
-                OUTPUT_BUF = bytes.clone();
-            }
-            -(bytes.len() as i32)
+            let n = bytes.len() as i32;
+            *out = bytes;
+            -n
         }
     }
 }
@@ -89,5 +83,9 @@ pub extern "C" fn analyze(ptr: *const u8, len: usize) -> i32 {
 /// Returns a pointer to the output buffer written by the last `analyze()` call.
 #[no_mangle]
 pub extern "C" fn get_output_ptr() -> *const u8 {
-    unsafe { OUTPUT_BUF.as_ptr() }
+    let guard = OUTPUT_BUF.lock().unwrap_or_else(|e| e.into_inner());
+    if guard.is_empty() {
+        return std::ptr::null();
+    }
+    guard.as_ptr()
 }

@@ -6,6 +6,19 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Complexity scorecard (educational USP)** in the output panel: side-by-side **current vs suggested** time/space complexity for algorithmic issues, plus a **trade-off headline** and detailed trade-off bullets.
+- **Approach scorecard** for maintainability-style issues: **Current → Suggested** framing with “why it matters” context.
+
+### Changed
+
+- Engine `algorithmAnalysis` JSON now includes optional `suggestedTimeComplexity`, `suggestedSpaceComplexity`, and `tradeOffSummary` (populated for nested-loop / algorithmic hotspot findings when AST analysis is available).
+
+---
+
 ## [0.0.1] - Initial public preview
 
 ### Added

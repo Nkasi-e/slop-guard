@@ -35,6 +35,8 @@ It explains where complexity risk appears and suggests practical optimization di
 - where indexing/maps can reduce repeated lookups
 - where trade-offs improve runtime at acceptable memory cost
 
+For algorithm-heavy findings, the **SlopGuard** output shows a **complexity scorecard**: **current vs suggested** time/space, a **trade-off headline** (memory vs speed, clarity vs performance), and deeper trade-off notes.
+
 Your team gets recommendations that are actionable, not generic.
 
 ## Quick start (how to use the editor)
