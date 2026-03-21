@@ -2,6 +2,17 @@
 
 **Ship cleaner code faster. SlopGuard is the in-editor quality layer for modern engineering teams.**
 
+**Current extension version: 0.0.4**
+
+### What’s new in 0.0.4
+
+- **Complexity & approach scorecards** in the output panel (current vs suggested complexity, trade-off headlines, maintainability framing).
+- **Symbol impact**: see **reference counts per file** via your editor’s language service; optional **peek references** after each run.
+- **Quick Actions** + **status bar** (`SlopGuard`) + **editor title** entry — one place to analyze, open output, settings, walkthrough, or toggle idle analysis.
+- **Run header** on each analysis: scope, **native vs WASM** engine, LLM on/off.
+- **Safer defaults for huge files** (`slopguard.maxAnalyzeLines`) and **long issue lists** (`slopguard.maxIssuesDetailed`).
+- **Get Started walkthrough** + optional **first-run hint** (`slopguard.showFirstRunHint`).
+
 SlopGuard helps engineers and vibe coders move fast without creating long-term code debt.  
 It reviews structure and algorithm choices while you code, so your team gets production-minded feedback before pull requests.
 
@@ -35,6 +46,8 @@ It explains where complexity risk appears and suggests practical optimization di
 - where indexing/maps can reduce repeated lookups
 - where trade-offs improve runtime at acceptable memory cost
 
+For algorithm-heavy findings, the **SlopGuard** output shows a **complexity scorecard**: **current vs suggested** time/space, a **trade-off headline** (memory vs speed, clarity vs performance), and deeper trade-off notes.
+
 Your team gets recommendations that are actionable, not generic.
 
 ## Quick start (how to use the editor)
@@ -46,8 +59,25 @@ Your team gets recommendations that are actionable, not generic.
 
 ### 2) Run SlopGuard
 
-Open the Command Palette and run:
-- `SlopGuard: Analyze Selection`
+Fastest paths:
+
+- **Status bar**: click **SlopGuard** (bottom right) → **Quick Actions** (analyze, symbol impact, output, settings, walkthrough).
+- **Editor title bar**: **SlopGuard** icon (when a file tab is open).
+- **Command Palette**: `SlopGuard: Analyze Selection` or `SlopGuard: Quick Actions`
+- **Shortcut**: `Cmd+Alt+A` (macOS) / `Ctrl+Alt+A` (Windows/Linux)
+
+After analysis, the output panel shows a short **run header** (scope, engine: native vs WASM, LLM on/off). Evidence lines include **clickable file paths** where the editor supports it.
+
+**Get Started**: Command Palette → **Welcome: Open Walkthrough…** → *Get started with SlopGuard* (or use Quick Actions → *Open Get Started walkthrough*).
+
+### Symbol impact (workspace references)
+
+Before you change a function or export, see **where it is used**:
+
+1. Put the cursor on the **symbol name** (function, variable, class, etc.).
+2. Run **`SlopGuard: Show Symbol Impact (References)`** (also in the editor right-click menu).
+
+SlopGuard asks the **language service** (same data as “Find All References”) for reference locations, then lists **per-file counts** in the output panel. **Install the usual language extension** for your stack (e.g. built-in TS/JS, Pylance, rust-analyzer) — SlopGuard does not ship language servers. This is **not** a full proof of breakage; it is a fast **call-site map** before you commit.
 
 ### 3) Read results
 
@@ -59,9 +89,9 @@ Images:
 
 ![VS Code usage](./media/vscodeshot.png)
 
-Optional demo video:
+<!-- Optional demo video:
 <video controls width="100%" src="./media/selectionrec.mov"></video>
-<video controls width="100%" src="./media/file%20analysicrec.mov"></video>
+<video controls width="100%" src="./media/file%20analysicrec.mov"></video> -->
 
 ## Auto-analysis on save (optional)
 
@@ -77,13 +107,25 @@ To enable it:
 
 Optional: if you want toast notifications, set `slopguard.showAutoNotifications` to `true`.
 
-## Engine resolution (no extra steps for MVP)
+### More settings (0.0.4+)
 
-SlopGuard locates the Rust engine in this order:
+| Setting | Default | Purpose |
+|--------|---------|---------|
+| `slopguard.maxAnalyzeLines` | `12000` | Cap lines sent to the engine for very large files. |
+| `slopguard.maxIssuesDetailed` | `30` | Full detail for the first N issues; rest as one-line summaries. |
+| `slopguard.showFirstRunHint` | `true` | One-time tip after install (Quick Actions + shortcuts). |
 
-1. `slopguard.enginePath` (if configured)
-2. `engine/target/debug|release/slopguard-engine` under your workspace (or one directory up)
-3. if it finds `engine/Cargo.toml`, it runs `cargo run --quiet --manifest-path <engine/Cargo.toml>`
+## Engine resolution (install and use)
+
+**No Rust install required** for normal Marketplace use. SlopGuard picks an engine in this order:
+
+1. **`slopguard.enginePath`** — if set and the file exists.
+2. **Bundled native binary** — `runtime/<platform>/slopguard-engine` (or `.exe`) shipped with the extension for your OS/arch when present.
+3. **Workspace dev builds** — `engine/target/debug|release/slopguard-engine` under the workspace (or one folder up).
+4. **`cargo run`** — if `engine/Cargo.toml` exists in the workspace (developer workflow).
+5. **WASM fallback** — `runtime/wasm/slopguard_engine.wasm` for platforms without a native binary. *Uses pattern + complexity analyzers; AST-heavy rules need the native engine.*
+
+LLM enrichment is still **optional** and **off by default** (see below).
 
 ## Optional LLM narrative layer (disabled by default)
 

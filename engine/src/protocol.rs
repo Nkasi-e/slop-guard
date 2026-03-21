@@ -35,8 +35,17 @@ pub struct Issue {
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AlgorithmAnalysis {
+    /// Complexity of the code as written (nested loops, repeated scans, etc.).
     pub time_complexity: String,
     pub space_complexity: String,
+    /// Target complexity after a typical refactor (index/map, single pass, etc.).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suggested_time_complexity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suggested_space_complexity: Option<String>,
+    /// One-line headline for the scorecard (memory vs speed, clarity vs perf, etc.).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trade_off_summary: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub trade_offs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,6 +73,8 @@ impl Issue {
         }
     }
 
+    /// Only used by the AST analyzer; omitted in WASM builds (`--no-default-features`).
+    #[cfg(feature = "ast")]
     pub fn with_algorithm_analysis(mut self, algorithm_analysis: AlgorithmAnalysis) -> Self {
         self.algorithm_analysis = Some(algorithm_analysis);
         self

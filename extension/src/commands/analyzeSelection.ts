@@ -31,17 +31,35 @@ export async function analyzeSelection(
     return;
   }
 
+  const maxLines = analysisSettings.maxAnalyzeLines;
+  let code = target.code;
+  const lineCount = code.split("\n").length;
+  let truncatedNote: string | undefined;
+  if (lineCount > maxLines) {
+    code = code.split("\n").slice(0, maxLines).join("\n");
+    truncatedNote = `Input truncated: file has ${lineCount} lines; analyzing first ${maxLines} (slopguard.maxAnalyzeLines).`;
+    if (options.mode === "manual") {
+      vscode.window.showWarningMessage(`SlopGuard: Large file — analyzing first ${maxLines} lines only.`);
+    }
+  }
+
   output.clear();
   output.appendLine(`Analyzing ${target.label}...`);
+  const sourceFile = vscode.workspace.asRelativePath(editor.document.uri, false);
+  output.appendLine(`Source file: ${sourceFile}`);
+  if (truncatedNote) {
+    output.appendLine(truncatedNote);
+  }
 
   try {
-    const response = await runEngineHybrid({
-      code: target.code,
+    const { response, engineLabel } = await runEngineHybrid({
+      code,
       languageId: editor.document.languageId,
     });
 
     let issues = response.issues;
     const llmSettings = resolveLlmSettings();
+    let llmEnriched = false;
     if (llmSettings.enabled) {
       if (!llmSettings.apiKey) {
         output.appendLine("LLM enrichment skipped: missing API key env vars.");
@@ -49,11 +67,12 @@ export async function analyzeSelection(
         output.appendLine("Running LLM enrichment...");
         try {
           issues = await enrichIssuesWithLlm(
-            target.code,
+            code,
             editor.document.languageId,
             response.issues,
             llmSettings
           );
+          llmEnriched = true;
           output.appendLine("LLM enrichment applied.");
         } catch (llmError) {
           const message = llmError instanceof Error ? llmError.message : String(llmError);
@@ -62,7 +81,14 @@ export async function analyzeSelection(
       }
     }
 
-    renderIssues(output, issues);
+    renderIssues(output, issues, {
+      sourceFile,
+      documentUri: editor.document.uri,
+      scopeLabel: `${analysisSettings.scope} → ${target.label}`,
+      engineLabel,
+      llmEnriched,
+      maxIssuesDetailed: analysisSettings.maxIssuesDetailed,
+    });
     output.show(true);
 
     if (issues.length === 0) {

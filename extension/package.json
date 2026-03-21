@@ -2,7 +2,7 @@
   "name": "slopguard",
   "displayName": "SlopGuard",
   "description": "Local-first static AI reviewer for VS Code: catches code slop, complexity hotspots, and maintainability issues before PRs.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "nkasi-labs",
   "author": "Emmanuel Nkasi",
   "license": "MIT",
@@ -30,6 +30,9 @@
   ],
   "activationEvents": [
     "onCommand:slopguard.analyzeSelection",
+    "onCommand:slopguard.symbolImpact",
+    "onCommand:slopguard.quickActions",
+    "onCommand:slopguard.openOutput",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
@@ -38,6 +41,18 @@
       {
         "command": "slopguard.analyzeSelection",
         "title": "SlopGuard: Analyze Selection"
+      },
+      {
+        "command": "slopguard.symbolImpact",
+        "title": "SlopGuard: Show Symbol Impact (References)"
+      },
+      {
+        "command": "slopguard.quickActions",
+        "title": "SlopGuard: Quick Actions"
+      },
+      {
+        "command": "slopguard.openOutput",
+        "title": "SlopGuard: Open Output"
       }
     ],
     "keybindings": [
@@ -49,9 +64,26 @@
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "slopguard.quickActions",
+          "group": "navigation@98",
+          "when": "editorTextFocus && resourceScheme == file"
+        }
+      ],
       "editor/context": [
         {
           "command": "slopguard.analyzeSelection",
+          "group": "slopguard",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "slopguard.symbolImpact",
+          "group": "slopguard",
+          "when": "editorTextFocus && resourceScheme == file"
+        },
+        {
+          "command": "slopguard.quickActions",
           "group": "slopguard",
           "when": "editorTextFocus"
         }
@@ -102,9 +134,73 @@
           "minimum": 500,
           "maximum": 10000,
           "description": "Delay in ms after last keystroke before auto-analyze runs (when autoAnalyzeOnIdle is enabled)."
+        },
+        "slopguard.maxAnalyzeLines": {
+          "type": "number",
+          "default": 12000,
+          "minimum": 100,
+          "maximum": 200000,
+          "description": "Maximum lines of code sent to the engine for large files (file scope / fallbacks). Prevents very large buffers from slowing analysis."
+        },
+        "slopguard.maxIssuesDetailed": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "maximum": 500,
+          "description": "Show full detail for the first N issues; remaining issues appear as one-line summaries."
+        },
+        "slopguard.showFirstRunHint": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a one-time tip after install (Quick Actions + shortcuts)."
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "slopguard-intro",
+        "title": "Get started with SlopGuard",
+        "description": "Local analysis, scorecards, and symbol impact via the language service.",
+        "steps": [
+          {
+            "id": "step-analyze",
+            "title": "Analyze your code",
+            "description": "Open a source file, then run **SlopGuard: Analyze Selection** or use **Cmd+Alt+A** (macOS) / **Ctrl+Alt+A** (Windows/Linux).\n\n[Run: Analyze Selection](command:slopguard.analyzeSelection)",
+            "media": {
+              "image": "media/icon.png",
+              "altText": "SlopGuard"
+            },
+            "completionEvents": [
+              "onCommand:slopguard.analyzeSelection"
+            ]
+          },
+          {
+            "id": "step-symbol-impact",
+            "title": "Symbol impact (references)",
+            "description": "Place the cursor on a symbol, then run **SlopGuard: Show Symbol Impact (References)** to see which files are affected.\n\n[Run: Symbol impact](command:slopguard.symbolImpact)",
+            "media": {
+              "image": "media/icon.png",
+              "altText": "SlopGuard"
+            },
+            "completionEvents": [
+              "onCommand:slopguard.symbolImpact"
+            ]
+          },
+          {
+            "id": "step-quick",
+            "title": "Quick Actions & status bar",
+            "description": "Click the **SlopGuard** item in the status bar or run **SlopGuard: Quick Actions** for all commands.\n\n[Open Quick Actions](command:slopguard.quickActions)",
+            "media": {
+              "image": "media/icon.png",
+              "altText": "SlopGuard"
+            },
+            "completionEvents": [
+              "onCommand:slopguard.quickActions"
+            ]
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -p ./",

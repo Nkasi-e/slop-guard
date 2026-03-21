@@ -465,6 +465,11 @@ fn analyze_algorithmic_complexity(
         );
     }
 
+    let trade_off_summary = format!(
+        "Trade-off: spend O(n) memory on a hash map or sorted index to avoid repeated O(n) inner scans — net often O(n) vs {} as data grows.",
+        time_complexity
+    );
+
     let mut issue = Issue::new(
             "Algorithmic complexity hotspot",
             vec![
@@ -482,6 +487,13 @@ fn analyze_algorithmic_complexity(
         .with_algorithm_analysis(AlgorithmAnalysis {
             time_complexity,
             space_complexity,
+            suggested_time_complexity: Some(
+                "O(n) typical (single pass + O(1) lookups per element via map/set/index)".to_string(),
+            ),
+            suggested_space_complexity: Some(
+                "O(n) auxiliary if you store an index/map (often still better than O(n^k) time)".to_string(),
+            ),
+            trade_off_summary: Some(trade_off_summary),
             trade_offs,
             optimization_hint: Some(
                 "True O(1) for whole-transform workloads is usually not possible; target O(1) lookups via indexing and O(n) total passes."

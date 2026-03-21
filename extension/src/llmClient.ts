@@ -1,6 +1,6 @@
 import * as https from "https";
 import { URL } from "url";
-import { EngineIssue, LlmSettings } from "./types";
+import { AlgorithmAnalysis, EngineIssue, LlmSettings } from "./types";
 
 type EnrichmentResult = {
   issues: EngineIssue[];
@@ -30,7 +30,7 @@ function buildPrompt(code: string, languageId: string, issues: EngineIssue[]): s
   return [
     "You are a senior engineer refining static-analysis findings.",
     "Return ONLY JSON with this shape:",
-    '{"issues":[{"issue":"string","explanation":["string"],"suggestion":"string","algorithmAnalysis":{"timeComplexity":"string","spaceComplexity":"string","tradeOffs":["string"],"optimizationHint":"string"}}]}',
+    '{"issues":[{"issue":"string","explanation":["string"],"suggestion":"string","algorithmAnalysis":{"timeComplexity":"string","spaceComplexity":"string","suggestedTimeComplexity":"string","suggestedSpaceComplexity":"string","tradeOffSummary":"string","tradeOffs":["string"],"optimizationHint":"string"}}]}',
     "Rules:",
     "- Keep issue names exactly as provided.",
     "- Explain algorithmic complexity and trade-offs when relevant.",
@@ -151,7 +151,28 @@ function mergeEnrichment(baseIssues: EngineIssue[], enrichedIssues: EngineIssue[
       ...base,
       explanation: enriched.explanation?.length ? enriched.explanation : base.explanation,
       suggestion: enriched.suggestion ?? base.suggestion,
-      algorithmAnalysis: enriched.algorithmAnalysis ?? base.algorithmAnalysis,
+      algorithmAnalysis: mergeAlgorithmAnalysis(base.algorithmAnalysis, enriched.algorithmAnalysis),
     };
   });
+}
+
+function mergeAlgorithmAnalysis(
+  base?: AlgorithmAnalysis,
+  next?: AlgorithmAnalysis
+): AlgorithmAnalysis | undefined {
+  if (!next) {
+    return base;
+  }
+  if (!base) {
+    return next;
+  }
+  return {
+    timeComplexity: next.timeComplexity || base.timeComplexity,
+    spaceComplexity: next.spaceComplexity || base.spaceComplexity,
+    suggestedTimeComplexity: next.suggestedTimeComplexity ?? base.suggestedTimeComplexity,
+    suggestedSpaceComplexity: next.suggestedSpaceComplexity ?? base.suggestedSpaceComplexity,
+    tradeOffSummary: next.tradeOffSummary ?? base.tradeOffSummary,
+    tradeOffs: next.tradeOffs?.length ? next.tradeOffs : base.tradeOffs,
+    optimizationHint: next.optimizationHint ?? base.optimizationHint,
+  };
 }

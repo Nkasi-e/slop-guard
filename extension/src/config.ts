@@ -3,14 +3,21 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { AnalysisSettings, EngineCommand, LlmSettings } from "./types";
 
-export function resolveEngineCommand(): EngineCommand | null {
+/** Resolved native engine + short label for output / UX. */
+export type NativeEngineInfo = {
+  command: EngineCommand;
+  label: string;
+};
+
+export function resolveNativeEngine(): NativeEngineInfo | null {
   const configured = vscode.workspace.getConfiguration("slopguard").get<string>("enginePath");
   if (configured && fs.existsSync(configured)) {
-    return { command: configured, args: [] };
+    return {
+      command: { command: configured, args: [] },
+      label: "Custom binary (slopguard.enginePath)",
+    };
   }
 
-  // 1) Prefer a bundled engine binary inside the extension itself.
-  // This allows marketplace users to "install and use" without Rust or cargo.
   const binaryName = process.platform === "win32" ? "slopguard-engine.exe" : "slopguard-engine";
   const extensionRoot = path.join(__dirname, "..");
 
@@ -37,7 +44,10 @@ export function resolveEngineCommand(): EngineCommand | null {
   if (runtimeFolder) {
     const bundled = path.join(extensionRoot, "runtime", runtimeFolder, binaryName);
     if (fs.existsSync(bundled)) {
-      return { command: bundled, args: [] };
+      return {
+        command: { command: bundled, args: [] },
+        label: `Bundled native engine (${runtimeFolder})`,
+      };
     }
   }
 
@@ -55,7 +65,10 @@ export function resolveEngineCommand(): EngineCommand | null {
 
   for (const candidate of binaryCandidates) {
     if (fs.existsSync(candidate)) {
-      return { command: candidate, args: [] };
+      return {
+        command: { command: candidate, args: [] },
+        label: "Workspace engine binary (target/debug or release)",
+      };
     }
   }
 
@@ -67,13 +80,20 @@ export function resolveEngineCommand(): EngineCommand | null {
   for (const manifest of cargoManifests) {
     if (fs.existsSync(manifest)) {
       return {
-        command: "cargo",
-        args: ["run", "--quiet", "--manifest-path", manifest],
+        command: {
+          command: "cargo",
+          args: ["run", "--quiet", "--manifest-path", manifest],
+        },
+        label: "cargo run (dev)",
       };
     }
   }
 
   return null;
+}
+
+export function resolveEngineCommand(): EngineCommand | null {
+  return resolveNativeEngine()?.command ?? null;
 }
 
 export function resolveLlmSettings(): LlmSettings {
@@ -126,5 +146,8 @@ export function resolveAnalysisSettings(): AnalysisSettings {
     autoAnalyzeOnIdleDelayMs: config.get<number>("autoAnalyzeOnIdleDelayMs", 1500),
     scope: config.get<"auto" | "selection" | "function" | "file">("analysisScope", "auto"),
     showAutoNotifications: config.get<boolean>("showAutoNotifications", false),
+    maxAnalyzeLines: config.get<number>("maxAnalyzeLines", 12000),
+    showFirstRunHint: config.get<boolean>("showFirstRunHint", true),
+    maxIssuesDetailed: config.get<number>("maxIssuesDetailed", 30),
   };
 }
