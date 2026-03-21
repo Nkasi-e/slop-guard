@@ -10,6 +10,8 @@ It is designed to complement (and in many cases replace) tools like Coderabbit-s
 - **Running locally and deterministically** via a Rust engine.
 - **Codifying review standards** so teams get consistent feedback, not “vibes” per review.
 
+**Extension releases:** see root [`CHANGELOG.md`](./CHANGELOG.md) and [`extension/README.md`](./extension/README.md) for Marketplace-facing notes. Latest published extension version: **0.0.4**.
+
 ---
 
 Screenshots:

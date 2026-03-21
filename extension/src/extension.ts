@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import { resolveAnalysisSettings } from "./config";
 import { analyzeSelection } from "./commands/analyzeSelection";
+import { runQuickActions } from "./commands/quickActions";
+import { showSymbolImpact } from "./commands/symbolImpact";
+import { maybeShowFirstRunHint } from "./firstRun";
 import { OUTPUT_CHANNEL_NAME } from "./output";
 
 let idleTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -12,6 +15,24 @@ export function activate(context: vscode.ExtensionContext) {
     analyzeSelection(output, { mode: "manual" })
   );
 
+  const symbolImpactCommand = vscode.commands.registerCommand("slopguard.symbolImpact", async () =>
+    showSymbolImpact(output)
+  );
+
+  const quickActionsCommand = vscode.commands.registerCommand("slopguard.quickActions", async () =>
+    runQuickActions(context, output)
+  );
+
+  const openOutputCommand = vscode.commands.registerCommand("slopguard.openOutput", () => {
+    output.show(true);
+  });
+
+  const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBar.text = "$(shield) SlopGuard";
+  statusBar.tooltip = "SlopGuard — click for Quick Actions";
+  statusBar.command = "slopguard.quickActions";
+  statusBar.show();
+
   const saveListener = vscode.workspace.onDidSaveTextDocument(async (document) => {
     const settings = resolveAnalysisSettings();
     if (!settings.autoAnalyzeOnSave) {
@@ -20,7 +41,6 @@ export function activate(context: vscode.ExtensionContext) {
     await analyzeSelection(output, { mode: "auto", document });
   });
 
-  // Copilot-style: run analysis automatically after user stops typing.
   let lastDocumentUri: string | undefined;
   const changeListener = vscode.workspace.onDidChangeTextDocument((event) => {
     const settings = resolveAnalysisSettings();
@@ -51,7 +71,19 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  context.subscriptions.push(command, saveListener, changeListener, configListener, output);
+  context.subscriptions.push(
+    command,
+    symbolImpactCommand,
+    quickActionsCommand,
+    openOutputCommand,
+    saveListener,
+    changeListener,
+    configListener,
+    output,
+    statusBar
+  );
+
+  void maybeShowFirstRunHint(context, async () => runQuickActions(context, output));
 }
 
 export function deactivate() {

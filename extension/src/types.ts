@@ -53,4 +53,10 @@ export type AnalysisSettings = {
   autoAnalyzeOnIdleDelayMs: number;
   scope: AnalysisScope;
   showAutoNotifications: boolean;
+  /** Cap lines sent to the engine for large files (scope file / fallback). */
+  maxAnalyzeLines: number;
+  /** One-time hint on first activation (can disable in settings). */
+  showFirstRunHint: boolean;
+  /** Full detail for first N issues; rest get one-line summaries. */
+  maxIssuesDetailed: number;
 };
