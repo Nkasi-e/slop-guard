@@ -33,6 +33,8 @@ export async function analyzeSelection(
 
   output.clear();
   output.appendLine(`Analyzing ${target.label}...`);
+  const sourceFile = vscode.workspace.asRelativePath(editor.document.uri, false);
+  output.appendLine(`Source file: ${sourceFile}`);
 
   try {
     const response = await runEngineHybrid({
@@ -62,7 +64,7 @@ export async function analyzeSelection(
       }
     }
 
-    renderIssues(output, issues);
+    renderIssues(output, issues, { sourceFile });
     output.show(true);
 
     if (issues.length === 0) {

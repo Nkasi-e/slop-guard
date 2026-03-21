@@ -3,10 +3,21 @@ import { EngineIssue } from "./types";
 
 export const OUTPUT_CHANNEL_NAME = "SlopGuard";
 
-export function renderIssues(output: vscode.OutputChannel, issues: EngineIssue[]): void {
+type RenderContext = {
+  sourceFile?: string;
+};
+
+export function renderIssues(
+  output: vscode.OutputChannel,
+  issues: EngineIssue[],
+  context: RenderContext = {}
+): void {
   output.appendLine("");
   output.appendLine("SlopGuard Results");
   output.appendLine("=".repeat(24));
+  if (context.sourceFile) {
+    output.appendLine(`File: ${context.sourceFile}`);
+  }
 
   if (issues.length === 0) {
     output.appendLine("No obvious slop patterns detected in selection.");
