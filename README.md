@@ -270,74 +270,31 @@ That’s exactly the kind of feedback many teams currently rely on senior review
 
 ## Architecture overview
 
-### Extension (developer experience layer)
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontSize":"20px","fontFamily":"Arial","fontWeight":"700"}}}%%
+sequenceDiagram
+  autonumber
+  actor Developer
+  participant Editor as SlopGuard Extension
+  participant Engine as Local Analysis Engine
+  participant LLM as Optional LLM Layer
 
-```text
-extension/src/
-  extension.ts                  # activation + command registration
-  commands/analyzeSelection.ts  # command handler and orchestration
-  config.ts                     # engine + LLM settings resolution
-  engineClient.ts               # stdin/stdout bridge to Rust engine
-  output.ts                     # render + formatting of issues
-  scope.ts                      # selection/function/file scope resolution
-  types.ts                      # shared extension types
-  llmClient.ts                  # optional enrichment via OpenAI-compatible API
+  Developer->>Editor: Write or edit code
+  Developer->>Editor: Trigger analysis (manual or auto-save)
+  Editor->>Editor: Select scope (selection/function/file)
+  Editor->>Engine: Send code for structural analysis
+  Engine->>Engine: Run pattern, complexity, and idiom checks
+  Engine-->>Editor: Return deterministic findings
+  alt LLM enrichment enabled
+    Editor->>LLM: Request wording enhancement
+    LLM-->>Editor: Return refined narrative feedback
+  end
+  Editor-->>Developer: Show results in output panel/notifications
+  Developer->>Editor: Refine code and rerun
 ```
 
-### Engine (static analysis core)
-
-```text
-engine/src/
-  main.rs
-  protocol.rs
-  analysis/
-    mod.rs         # analyzer orchestration
-    patterns.rs    # core "slop" detectors
-    complexity.rs  # complexity + repeated-logic heuristics
-    idioms.rs      # language-specific idioms
-    ast.rs         # tree-sitter-based structural analysis
-```
-
-The extension sends a **simple JSON payload** over stdin:
-
-```json
-{
-  "code": "const x = 1; return x;",
-  "languageId": "javascript"
-}
-```
-
-The engine responds with:
-
-```json
-{
-  "issues": [
-    {
-      "issue": "Redundant variable before return",
-      "explanation": [
-        "The variable is assigned and returned immediately.",
-        "Return the expression directly to reduce noise."
-      ],
-      "confidence": 0.92,
-      "suggestion": "Return the expression directly.",
-      "issueType": "readability",
-      "algorithmAnalysis": {
-        "timeComplexity": "O(n^2)",
-        "spaceComplexity": "O(n)",
-        "suggestedTimeComplexity": "O(n) typical (single pass + O(1) lookups)",
-        "suggestedSpaceComplexity": "O(n) auxiliary for an index/map",
-        "tradeOffSummary": "Trade-off: more memory for the index to avoid repeated inner scans.",
-        "tradeOffs": [
-          "Using a hash-based index can reduce repeated lookups but increases memory usage."
-        ],
-        "optimizationHint": "True O(1) for whole-transform workloads is usually not possible; target O(1) lookups via indexing and O(n) total passes."
-      }
-    }
-  ]
-}
-```
-
-The optional LLM layer refines **only** the human wording and algorithm commentary, while preserving issue identifiers and structure.
+SlopGuard runs as a loop in your editor: you write code, analysis is triggered, structural checks run locally, and feedback appears immediately so you can improve before review.
+If enabled, LLM enrichment adjusts only how feedback is phrased; the core structural detection remains local and deterministic.
 
 ---
 
