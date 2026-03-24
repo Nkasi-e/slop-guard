@@ -1,5 +1,7 @@
 #[cfg(feature = "ast")]
 mod ast;
+#[cfg(feature = "ast")]
+mod cfg;
 mod complexity;
 mod idioms;
 mod patterns;
@@ -8,6 +10,8 @@ use crate::protocol::{AnalyzeRequest, Issue};
 use std::collections::HashMap;
 #[cfg(feature = "ast")]
 use ast::AstAnalyzer;
+#[cfg(feature = "ast")]
+use cfg::CfgAnalyzer;
 use complexity::ComplexityAnalyzer;
 use idioms::IdiomaticAnalyzer;
 use patterns::PatternAnalyzer;
@@ -25,7 +29,10 @@ pub fn run_all_analyzers(request: &AnalyzeRequest) -> Vec<Issue> {
     ];
 
     #[cfg(feature = "ast")]
-    analyzers.insert(0, Box::new(AstAnalyzer));
+    {
+        analyzers.insert(0, Box::new(CfgAnalyzer));
+        analyzers.insert(0, Box::new(AstAnalyzer));
+    }
 
     let all_issues: Vec<Issue> = analyzers
         .into_iter()
