@@ -8,9 +8,9 @@ use crate::analysis::Analyzer;
 use crate::protocol::{AnalyzeRequest, Issue};
 use tree_sitter::Parser;
 
-use builder::build_cfg;
+use builder::{build_cfg, extract_symbol_table};
 use lang::SupportedLanguage;
-use rules::detect_blocking_in_async;
+use rules::{run_rules, RuleContext};
 
 pub struct CfgAnalyzer;
 
@@ -33,8 +33,14 @@ impl Analyzer for CfgAnalyzer {
 
         let root = tree.root_node();
         let cfg = build_cfg(root);
-        detect_blocking_in_async(root, &request.code, lang, &cfg)
-            .into_iter()
-            .collect()
+        let symbols = extract_symbol_table(root, &request.code);
+        let context = RuleContext {
+            root,
+            source: &request.code,
+            language: lang,
+            cfg: &cfg,
+            symbols: &symbols,
+        };
+        run_rules(&context)
     }
 }
