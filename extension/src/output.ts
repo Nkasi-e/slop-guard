@@ -5,8 +5,6 @@ export const OUTPUT_CHANNEL_NAME = "SlopGuard";
 
 export type RenderContext = {
   sourceFile?: string;
-  /** Absolute file URI for clickable snippet links. */
-  documentUri?: vscode.Uri;
   scopeLabel?: string;
   engineLabel?: string;
   llmEnriched?: boolean;
@@ -38,21 +36,28 @@ function renderRunHeader(output: vscode.OutputChannel, context: RenderContext): 
   output.appendLine("-".repeat(24));
 }
 
-/** VS Code / Cursor often linkifies `path:line:col` in the output panel. */
-function appendSnippetLine(
-  output: vscode.OutputChannel,
-  uri: vscode.Uri | undefined,
-  lineNo: number | undefined,
-  text: string
-): void {
-  if (typeof lineNo === "number" && uri?.scheme === "file") {
-    const loc = `${uri.fsPath}:${lineNo}:1`;
-    output.appendLine(`    ${lineNo}: ${text}  (${loc})`);
-  } else if (typeof lineNo === "number") {
-    output.appendLine(`    ${lineNo}: ${text}`);
-  } else {
-    output.appendLine(`    ${text}`);
+const MAX_LINE_WIDTH = 140;
+
+function compactSnippetLines(raw: string[]): string[] {
+  const out: string[] = [];
+  let previousBlank = false;
+  for (const line of raw) {
+    const normalized = line.replace(/\t/g, "  ").trimEnd();
+    const isBlank = normalized.trim().length === 0;
+    if (isBlank && previousBlank) {
+      continue;
+    }
+    previousBlank = isBlank;
+    out.push(normalized);
   }
+  return out;
+}
+
+function truncateLine(input: string, maxLen: number): string {
+  if (input.length <= maxLen) {
+    return input;
+  }
+  return `${input.slice(0, Math.max(0, maxLen - 1))}…`;
 }
 
 /** Side-by-side style scorecard for algorithmic issues (educational USP). */
@@ -107,8 +112,6 @@ function renderOneIssue(
   issue: EngineIssue,
   context: RenderContext
 ): void {
-  const uri = context.documentUri;
-
   output.appendLine("");
   output.appendLine(`- 💡 ${issue.issue}`);
   output.appendLine(`  Confidence: ${Math.round(issue.confidence * 100)}%`);
@@ -137,15 +140,20 @@ function renderOneIssue(
     const start = issue.snippetStartLine;
     const end = issue.snippetEndLine;
     if (typeof start === "number" && typeof end === "number") {
-      output.appendLine(`  Evidence snippet (lines ${start}-${end}):`);
+      output.appendLine(`  Evidence (lines ${start}-${end}):`);
     } else {
-      output.appendLine(`  Evidence snippet:`);
+      output.appendLine("  Evidence:");
     }
 
-    const lines = issue.snippet.split("\n");
+    const lines = compactSnippetLines(issue.snippet.split("\n"));
     for (let i = 0; i < lines.length; i++) {
       const lineNo = typeof start === "number" ? start + i : undefined;
-      appendSnippetLine(output, uri, lineNo, lines[i]);
+      const text = truncateLine(lines[i], MAX_LINE_WIDTH);
+      if (typeof lineNo === "number") {
+        output.appendLine(`    ${lineNo}: ${text}`);
+      } else {
+        output.appendLine(`    ${text}`);
+      }
     }
   }
 }

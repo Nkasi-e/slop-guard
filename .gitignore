@@ -3,3 +3,4 @@ extension/out/
 engine/target/
 engine/target-*/
 *.vsix
+.local/
