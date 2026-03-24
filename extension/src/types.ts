@@ -29,6 +29,8 @@ export type EngineResponse = {
 export type AnalyzeInput = {
   code: string;
   languageId: string;
+  /** Stable key used by the engine for incremental AST parsing cache. */
+  documentKey?: string;
 };
 
 export type EngineCommand = {

@@ -55,6 +55,7 @@ export async function analyzeSelection(
     const { response, engineLabel } = await runEngineHybrid({
       code,
       languageId: editor.document.languageId,
+      documentKey: `${editor.document.uri.toString()}::${target.label}`,
     });
 
     let issues = response.issues;

@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub struct AnalyzeRequest {
     pub code: String,
     pub language_id: Option<String>,
+    #[serde(default)]
+    pub document_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

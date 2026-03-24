@@ -1,4 +1,4 @@
-import { spawn } from "child_process";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { AnalyzeInput, EngineCommand, EngineResponse } from "./types";
 import { runEngineViaWasm } from "./wasmEngineClient";
 import { resolveNativeEngine } from "./config";
@@ -50,12 +50,126 @@ export type HybridEngineResult = {
   engineLabel: string;
 };
 
+class PersistentEngineClient {
+  private child?: ChildProcessWithoutNullStreams;
+  private readonly queue: Array<{
+    resolve: (value: EngineResponse) => void;
+    reject: (reason?: unknown) => void;
+  }> = [];
+  private buffer = "";
+
+  constructor(private readonly command: EngineCommand) {}
+
+  async analyze(input: AnalyzeInput): Promise<EngineResponse> {
+    this.ensureStarted();
+    return new Promise<EngineResponse>((resolve, reject) => {
+      this.queue.push({ resolve, reject });
+      this.child!.stdin.write(`${JSON.stringify(input)}\n`);
+    });
+  }
+
+  dispose(): void {
+    if (!this.child) return;
+    this.child.kill();
+    this.child = undefined;
+    this.rejectAll(new Error("Persistent engine disposed."));
+    this.buffer = "";
+  }
+
+  private ensureStarted(): void {
+    if (this.child && !this.child.killed) return;
+
+    const child = spawn(this.command.command, [...this.command.args, "--serve"], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    this.child = child;
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      this.buffer += chunk.toString("utf8");
+      this.drainResponses();
+    });
+
+    child.stderr.on("data", () => {
+      // No-op: keep stderr consumed to avoid backpressure.
+    });
+
+    child.on("error", (err) => {
+      this.rejectAll(err);
+      this.child = undefined;
+    });
+
+    child.on("close", () => {
+      this.rejectAll(new Error("Persistent engine process exited."));
+      this.child = undefined;
+      this.buffer = "";
+    });
+  }
+
+  private drainResponses(): void {
+    while (true) {
+      const nl = this.buffer.indexOf("\n");
+      if (nl < 0) {
+        return;
+      }
+
+      const line = this.buffer.slice(0, nl).trim();
+      this.buffer = this.buffer.slice(nl + 1);
+      if (!line) {
+        continue;
+      }
+
+      const pending = this.queue.shift();
+      if (!pending) {
+        continue;
+      }
+
+      try {
+        const parsed = JSON.parse(line) as EngineResponse;
+        if (!parsed.issues || !Array.isArray(parsed.issues)) {
+          pending.reject(new Error("Invalid engine response shape."));
+          continue;
+        }
+        pending.resolve(parsed);
+      } catch (err) {
+        pending.reject(new Error(`Invalid JSON from engine: ${String(err)}`));
+      }
+    }
+  }
+
+  private rejectAll(reason: Error): void {
+    while (this.queue.length > 0) {
+      const pending = this.queue.shift();
+      pending?.reject(reason);
+    }
+  }
+}
+
+let persistentNativeClient: PersistentEngineClient | undefined;
+
+function getPersistentNativeClient(command: EngineCommand): PersistentEngineClient {
+  if (!persistentNativeClient) {
+    persistentNativeClient = new PersistentEngineClient(command);
+  }
+  return persistentNativeClient;
+}
+
+export function disposePersistentEngineClient(): void {
+  persistentNativeClient?.dispose();
+  persistentNativeClient = undefined;
+}
+
 // Hybrid helper: prefer native engine when available, otherwise fall back to WASM.
 export async function runEngineHybrid(input: AnalyzeInput): Promise<HybridEngineResult> {
   const native = resolveNativeEngine();
   if (native) {
-    const response = await runEngine(native.command, input);
-    return { response, engineLabel: native.label };
+    try {
+      const response = await getPersistentNativeClient(native.command).analyze(input);
+      return { response, engineLabel: `${native.label} (persistent)` };
+    } catch {
+      // Fall back to one-shot process if daemon mode fails unexpectedly.
+      const response = await runEngine(native.command, input);
+      return { response, engineLabel: `${native.label} (one-shot fallback)` };
+    }
   }
 
   const response = await runEngineViaWasm(input);

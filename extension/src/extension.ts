@@ -5,6 +5,7 @@ import { runQuickActions } from "./commands/quickActions";
 import { showSymbolImpact } from "./commands/symbolImpact";
 import { maybeShowFirstRunHint } from "./firstRun";
 import { OUTPUT_CHANNEL_NAME } from "./output";
+import { disposePersistentEngineClient } from "./engineClient";
 
 let idleTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -91,4 +92,5 @@ export function deactivate() {
     clearTimeout(idleTimeout);
     idleTimeout = undefined;
   }
+  disposePersistentEngineClient();
 }
