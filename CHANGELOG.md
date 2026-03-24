@@ -16,6 +16,57 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ---
 
+## [0.0.5] - 2026-03-24
+
+### Added
+
+- **Persistent native engine mode** (`--serve`) in `slopguard-engine`:
+  - Extension can keep one long-lived engine process instead of spawning per analysis.
+  - Enables stateful analysis behavior in native mode (foundation for incremental recomputation).
+  - One-shot mode remains supported for compatibility.
+- **Incremental AST parsing cache** in engine:
+  - Per-document/scope cache key (`documentKey`) support added to request payload.
+  - Engine reuses previous tree-sitter `Tree` and applies `InputEdit` before reparse.
+  - Keeps deterministic results while reducing repeated parse work.
+- **New CFG semantic analyzer scaffold** (AST feature path):
+  - CFG IR now includes block/edge model and extended edge markers:
+    - `Fallthrough`, `BranchTrue/False`, `LoopBack`, `Break`, `Continue`,
+      `TryEdge`, `CatchEdge`, `FinallyEdge`, `ReturnEdge`, `ThrowEdge`.
+  - Added semantic rule framework with `RuleContext` + `SemanticRule` trait.
+  - Added symbol extraction pass (function defs, call sites, identifiers) for semantic rules.
+- **First CFG-backed detector**:
+  - `Blocking call in async context` (`issueType: async-blocking`) with evidence snippets.
+  - Implemented across supported languages using language adapters:
+    - TypeScript, JavaScript, Python, Go, Rust, Ruby, Java.
+- **Automated integration tests** for CFG async-blocking behavior:
+  - New test suite at `engine/tests/cfg_async_blocking.rs`.
+  - Includes TS positive/negative and Python positive coverage.
+- **Engine architecture modularization**:
+  - CFG split into dedicated modules:
+    - `analysis/cfg/{mod,ir,builder,rules,util}`
+    - `analysis/cfg/lang/{mod,javascript,python,go,rust,ruby,java}`
+  - AST analyzer split from monolith to modules:
+    - `analysis/ast/{mod,language,parse_cache,detectors,complexity,evidence,utils}`
+
+### Changed
+
+- Extension engine client now prefers persistent native mode and degrades gracefully:
+  - If persistent mode fails, falls back to one-shot native execution.
+  - Session-level disablement prevents repeated timeout penalties after first failure.
+  - Short timeout guard added to avoid silent hangs in persistent path.
+- Output readability improvements:
+  - Removed per-line absolute path noise from evidence rendering.
+  - Kept concise, structured issue formatting while preserving full snippet visibility.
+
+### Fixed
+
+- Resolved regression where persistent mode could appear to “hang” on unsupported binaries:
+  - Added safer argument handling for `cargo run` daemon mode (`-- --serve`).
+  - Added timeout + fallback behavior to keep analysis responsive.
+- Fixed Python async-context detection edge case revealed by automated tests:
+  - Async detection now handles both `async_function_definition` and `async def ...` text-shape fallback.
+---
+
 ## [0.0.4] - 2026-03-19
 
 ### Added

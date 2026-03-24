@@ -10,7 +10,7 @@ It is designed to complement (and in many cases replace) tools like Coderabbit-s
 - **Running locally and deterministically** via a Rust engine.
 - **Codifying review standards** so teams get consistent feedback, not “vibes” per review.
 
-**Extension releases:** see root [`CHANGELOG.md`](./CHANGELOG.md) and [`extension/README.md`](./extension/README.md) for Marketplace-facing notes. Latest published extension version: **0.0.4**.
+**Extension releases:** see root [`CHANGELOG.md`](./CHANGELOG.md) and [`extension/README.md`](./extension/README.md) for Marketplace-facing notes. Latest published extension version: **0.0.5**.
 
 ---
 
@@ -101,6 +101,11 @@ You can still wire up LLM-based review (including services like Coderabbit) on t
   - **Python**: `for i in range(len(items))` plus `append` when direct iteration / comprehensions are more idiomatic.
   - **Rust**: suspicious `clone()` overuse, particularly in loops and hot paths.
 
+- **CFG semantic rule (v0, aggressive):**
+  - **Blocking call in async context** (`issueType: async-blocking`)
+  - Implemented for TypeScript, JavaScript, Python, Go, Rust, Ruby, Java.
+  - Detects known blocking APIs in async execution contexts and reports path-aware evidence.
+
 Every issue reported by the engine includes:
 
 - A short **issue title** (e.g. “Redundant variable before return”).
@@ -108,6 +113,40 @@ Every issue reported by the engine includes:
 - A **confidence score**.
 - Optional **suggestion** text.
 - Optional **algorithm analysis** with time/space complexity and trade-off hints.
+
+---
+
+## Engine updates in this release
+
+This release includes major internal upgrades focused on runtime speed, determinism, and semantic depth:
+
+- **Persistent native engine mode**
+  - Native engine now supports `--serve` for long-lived analysis sessions.
+  - Extension prefers persistent mode to avoid repeated process startup cost.
+  - If persistent mode is unavailable, extension falls back to one-shot native execution.
+
+- **Incremental AST parsing**
+  - Request payload includes `documentKey` so parser state can be reused across runs.
+  - Engine applies tree-sitter `InputEdit` and reparses incrementally rather than always parsing from scratch.
+
+- **CFG semantic layer**
+  - New CFG analyzer adds control-flow primitives (branch, loop-back, break/continue, try/catch/finally, return/throw markers).
+  - Semantic rule interface (`RuleContext` + `SemanticRule`) now runs on top of AST + CFG + symbol extraction.
+  - First rule shipped: `async-blocking` detection.
+
+- **Modular architecture refactor**
+  - AST analyzer split into focused modules under `engine/src/analysis/ast/`.
+  - CFG analyzer split into focused modules under `engine/src/analysis/cfg/`.
+  - Language adapters split per language under `engine/src/analysis/cfg/lang/`.
+
+- **Automated coverage**
+  - New integration tests verify async-blocking detection behavior in TS/Python paths:
+    - `engine/tests/cfg_async_blocking.rs`
+
+### Notes on current scope
+
+- CFG analysis is currently **flow-aware within the analyzed scope** (selection/function/file).
+- It is **not yet fully codebase-context aware** across all files/modules (tracked in roadmap).
 
 ---
 

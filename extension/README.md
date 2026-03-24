@@ -2,9 +2,20 @@
 
 **Ship cleaner code faster. SlopGuard is the in-editor quality layer for modern engineering teams.**
 
-**Current extension version: 0.0.4**
+**Current extension version: 0.0.5**
 
-### What’s new in 0.0.4
+### Included in this release
+
+- **Persistent native engine path** now attempts long-lived `--serve` mode for lower per-run overhead.
+- **Safe fallback behavior**: if persistent mode fails, SlopGuard falls back to one-shot native execution and avoids repeated timeout penalties.
+- **Incremental AST support** is wired via `documentKey` request context.
+- **CFG semantic analyzer (v0)** is active with first rule:
+  - `Blocking call in async context` (`issueType: async-blocking`)
+  - Supported on TypeScript, JavaScript, Python, Go, Rust, Ruby, Java.
+- **Engine internals refactored** into modular AST/CFG folders for maintainability and faster iteration.
+- **Automated integration tests** added for CFG async-blocking behavior (`engine/tests/cfg_async_blocking.rs`).
+
+### What’s new in 0.0.5
 
 - **Complexity & approach scorecards** in the output panel (current vs suggested complexity, trade-off headlines, maintainability framing).
 - **Symbol impact**: see **reference counts per file** via your editor’s language service; optional **peek references** after each run.
