@@ -84,7 +84,6 @@ export async function analyzeSelection(
 
     renderIssues(output, issues, {
       sourceFile,
-      documentUri: editor.document.uri,
       scopeLabel: `${analysisSettings.scope} → ${target.label}`,
       engineLabel,
       llmEnriched,

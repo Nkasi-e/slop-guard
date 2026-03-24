@@ -63,7 +63,32 @@ class PersistentEngineClient {
   async analyze(input: AnalyzeInput): Promise<EngineResponse> {
     this.ensureStarted();
     return new Promise<EngineResponse>((resolve, reject) => {
-      this.queue.push({ resolve, reject });
+      let request:
+        | {
+            resolve: (value: EngineResponse) => void;
+            reject: (reason?: unknown) => void;
+          }
+        | undefined;
+      const timeout = setTimeout(() => {
+        const idx = request ? this.queue.indexOf(request) : -1;
+        if (idx >= 0) {
+          this.queue.splice(idx, 1);
+        }
+        reject(new Error("Persistent engine timed out waiting for response."));
+      }, 10000);
+
+      const wrappedResolve = (value: EngineResponse) => {
+        clearTimeout(timeout);
+        resolve(value);
+      };
+
+      const wrappedReject = (reason?: unknown) => {
+        clearTimeout(timeout);
+        reject(reason);
+      };
+
+      request = { resolve: wrappedResolve, reject: wrappedReject };
+      this.queue.push(request);
       this.child!.stdin.write(`${JSON.stringify(input)}\n`);
     });
   }
@@ -79,7 +104,7 @@ class PersistentEngineClient {
   private ensureStarted(): void {
     if (this.child && !this.child.killed) return;
 
-    const child = spawn(this.command.command, [...this.command.args, "--serve"], {
+    const child = spawn(this.command.command, buildServeArgs(this.command), {
       stdio: ["pipe", "pipe", "pipe"],
     });
     this.child = child;
@@ -142,6 +167,19 @@ class PersistentEngineClient {
       pending?.reject(reason);
     }
   }
+}
+
+function buildServeArgs(command: EngineCommand): string[] {
+  const baseArgs = [...command.args];
+  // For `cargo run`, binary args must come after `--`.
+  if (command.command === "cargo" && baseArgs.includes("run")) {
+    if (!baseArgs.includes("--")) {
+      baseArgs.push("--");
+    }
+    baseArgs.push("--serve");
+    return baseArgs;
+  }
+  return [...baseArgs, "--serve"];
 }
 
 let persistentNativeClient: PersistentEngineClient | undefined;
