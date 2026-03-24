@@ -75,7 +75,7 @@ class PersistentEngineClient {
           this.queue.splice(idx, 1);
         }
         reject(new Error("Persistent engine timed out waiting for response."));
-      }, 10000);
+      }, 1200);
 
       const wrappedResolve = (value: EngineResponse) => {
         clearTimeout(timeout);
@@ -183,8 +183,12 @@ function buildServeArgs(command: EngineCommand): string[] {
 }
 
 let persistentNativeClient: PersistentEngineClient | undefined;
+let persistentNativeUnavailable = false;
 
 function getPersistentNativeClient(command: EngineCommand): PersistentEngineClient {
+  if (persistentNativeUnavailable) {
+    throw new Error("Persistent native engine disabled for this session.");
+  }
   if (!persistentNativeClient) {
     persistentNativeClient = new PersistentEngineClient(command);
   }
@@ -200,14 +204,25 @@ export function disposePersistentEngineClient(): void {
 export async function runEngineHybrid(input: AnalyzeInput): Promise<HybridEngineResult> {
   const native = resolveNativeEngine();
   if (native) {
-    try {
-      const response = await getPersistentNativeClient(native.command).analyze(input);
-      return { response, engineLabel: `${native.label} (persistent)` };
-    } catch {
-      // Fall back to one-shot process if daemon mode fails unexpectedly.
-      const response = await runEngine(native.command, input);
-      return { response, engineLabel: `${native.label} (one-shot fallback)` };
+    if (!persistentNativeUnavailable) {
+      try {
+        const response = await getPersistentNativeClient(native.command).analyze(input);
+        return { response, engineLabel: `${native.label} (persistent)` };
+      } catch {
+        // If daemon mode fails once (e.g., older bundled binary without --serve),
+        // disable it for this session to avoid repeated latency penalties.
+        persistentNativeUnavailable = true;
+        disposePersistentEngineClient();
+      }
     }
+
+    const response = await runEngine(native.command, input);
+    return {
+      response,
+      engineLabel: persistentNativeUnavailable
+        ? `${native.label} (one-shot; persistent unavailable)`
+        : `${native.label} (one-shot fallback)`,
+    };
   }
 
   const response = await runEngineViaWasm(input);
