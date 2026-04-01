@@ -1,13 +1,17 @@
 import * as vscode from "vscode";
 import { resolveAnalysisSettings } from "../config";
 import { analyzeSelection } from "./analyzeSelection";
+import { analyzeWorkspace } from "./analyzeWorkspace";
 import { showSymbolImpact } from "./symbolImpact";
+import { WorkspaceContextIndexer } from "../workspaceContext";
 
 type QuickPickItem = vscode.QuickPickItem & { id: string };
 
 export async function runQuickActions(
   context: vscode.ExtensionContext,
-  output: vscode.OutputChannel
+  output: vscode.OutputChannel,
+  indexer: WorkspaceContextIndexer,
+  diagnostics: vscode.DiagnosticCollection
 ): Promise<void> {
   const settings = resolveAnalysisSettings();
   const items: QuickPickItem[] = [
@@ -16,6 +20,18 @@ export async function runQuickActions(
       label: "$(search) Analyze code",
       description: "SlopGuard engine on selection / block / file",
       detail: "Same as SlopGuard: Analyze Selection",
+    },
+    {
+      id: "analyzeWorkspace",
+      label: "$(folder-opened) Scan workspace",
+      description: "Analyze many files (including closed) — Problems panel",
+      detail: "Uses slopguard.maxWorkspaceScanFiles cap",
+    },
+    {
+      id: "clearWorkspaceDiagnostics",
+      label: "$(clear-all) Clear workspace scan markers",
+      description: "Remove red/yellow SlopGuard lines from Scan workspace",
+      detail: "Does not change your code",
     },
     {
       id: "symbolImpact",
@@ -56,7 +72,14 @@ export async function runQuickActions(
 
   switch (picked.id) {
     case "analyze":
-      await analyzeSelection(output, { mode: "manual" });
+      await analyzeSelection(output, { mode: "manual", indexer });
+      break;
+    case "analyzeWorkspace":
+      await analyzeWorkspace(output, diagnostics, indexer);
+      break;
+    case "clearWorkspaceDiagnostics":
+      diagnostics.clear();
+      vscode.window.showInformationMessage("SlopGuard: Cleared workspace scan markers (Problems).");
       break;
     case "symbolImpact":
       await showSymbolImpact(output);

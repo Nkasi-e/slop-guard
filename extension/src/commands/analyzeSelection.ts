@@ -4,10 +4,12 @@ import { runEngineHybrid } from "../engineClient";
 import { enrichIssuesWithLlm } from "../llmClient";
 import { renderIssues } from "../output";
 import { resolveAnalysisTarget } from "../scope";
+import { WorkspaceContextIndexer } from "../workspaceContext";
 
 type AnalyzeOptions = {
   mode: "manual" | "auto";
   document?: vscode.TextDocument;
+  indexer?: WorkspaceContextIndexer;
 };
 
 export async function analyzeSelection(
@@ -52,10 +54,14 @@ export async function analyzeSelection(
   }
 
   try {
+    const analysisContext = options.indexer
+      ? await options.indexer.getAnalysisContext(editor.document, 20)
+      : undefined;
     const { response, engineLabel } = await runEngineHybrid({
       code,
       languageId: editor.document.languageId,
       documentKey: `${editor.document.uri.toString()}::${target.label}`,
+      analysisContext,
     });
 
     let issues = response.issues;

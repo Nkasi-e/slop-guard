@@ -1,19 +1,24 @@
 import * as vscode from "vscode";
 import { resolveAnalysisSettings } from "./config";
 import { analyzeSelection } from "./commands/analyzeSelection";
+import { analyzeWorkspace } from "./commands/analyzeWorkspace";
 import { runQuickActions } from "./commands/quickActions";
 import { showSymbolImpact } from "./commands/symbolImpact";
 import { maybeShowFirstRunHint } from "./firstRun";
 import { OUTPUT_CHANNEL_NAME } from "./output";
 import { disposePersistentEngineClient } from "./engineClient";
+import { WorkspaceContextIndexer } from "./workspaceContext";
 
 let idleTimeout: ReturnType<typeof setTimeout> | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
+  const diagnostics = vscode.languages.createDiagnosticCollection("slopguard");
+  const indexer = new WorkspaceContextIndexer(context, output);
+  void indexer.warmStart();
 
   const command = vscode.commands.registerCommand("slopguard.analyzeSelection", async () =>
-    analyzeSelection(output, { mode: "manual" })
+    analyzeSelection(output, { mode: "manual", indexer })
   );
 
   const symbolImpactCommand = vscode.commands.registerCommand("slopguard.symbolImpact", async () =>
@@ -21,11 +26,20 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const quickActionsCommand = vscode.commands.registerCommand("slopguard.quickActions", async () =>
-    runQuickActions(context, output)
+    runQuickActions(context, output, indexer, diagnostics)
   );
 
   const openOutputCommand = vscode.commands.registerCommand("slopguard.openOutput", () => {
     output.show(true);
+  });
+
+  const analyzeWorkspaceCommand = vscode.commands.registerCommand("slopguard.analyzeWorkspace", async () =>
+    analyzeWorkspace(output, diagnostics, indexer)
+  );
+
+  const clearDiagnosticsCommand = vscode.commands.registerCommand("slopguard.clearWorkspaceDiagnostics", () => {
+    diagnostics.clear();
+    vscode.window.showInformationMessage("SlopGuard: Cleared workspace scan markers (Problems).");
   });
 
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
@@ -35,11 +49,12 @@ export function activate(context: vscode.ExtensionContext) {
   statusBar.show();
 
   const saveListener = vscode.workspace.onDidSaveTextDocument(async (document) => {
+    await indexer.onDocumentSaved(document);
     const settings = resolveAnalysisSettings();
     if (!settings.autoAnalyzeOnSave) {
       return;
     }
-    await analyzeSelection(output, { mode: "auto", document });
+    await analyzeSelection(output, { mode: "auto", document, indexer });
   });
 
   let lastDocumentUri: string | undefined;
@@ -49,6 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
     const doc = event.document;
+    void indexer.onDocumentChanged(doc);
     if (doc.uri.scheme !== "file" || doc.languageId === "plaintext") {
       return;
     }
@@ -60,8 +76,14 @@ export function activate(context: vscode.ExtensionContext) {
       if (!activeEditor || activeEditor.document.uri.toString() !== lastDocumentUri) {
         return;
       }
-      analyzeSelection(output, { mode: "auto", document: activeEditor.document }).catch(() => {});
+      analyzeSelection(output, { mode: "auto", document: activeEditor.document, indexer }).catch(
+        () => {}
+      );
     }, settings.autoAnalyzeOnIdleDelayMs);
+  });
+
+  const deleteListener = vscode.workspace.onDidDeleteFiles((event) => {
+    void indexer.onFilesDeleted(event.files);
   });
 
   const configListener = vscode.workspace.onDidChangeConfiguration((event) => {
@@ -77,14 +99,18 @@ export function activate(context: vscode.ExtensionContext) {
     symbolImpactCommand,
     quickActionsCommand,
     openOutputCommand,
+    analyzeWorkspaceCommand,
+    clearDiagnosticsCommand,
+    diagnostics,
     saveListener,
     changeListener,
+    deleteListener,
     configListener,
     output,
     statusBar
   );
 
-  void maybeShowFirstRunHint(context, async () => runQuickActions(context, output));
+  void maybeShowFirstRunHint(context, async () => runQuickActions(context, output, indexer, diagnostics));
 }
 
 export function deactivate() {

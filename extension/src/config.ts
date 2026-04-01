@@ -149,5 +149,6 @@ export function resolveAnalysisSettings(): AnalysisSettings {
     maxAnalyzeLines: config.get<number>("maxAnalyzeLines", 12000),
     showFirstRunHint: config.get<boolean>("showFirstRunHint", true),
     maxIssuesDetailed: config.get<number>("maxIssuesDetailed", 30),
+    maxWorkspaceScanFiles: config.get<number>("maxWorkspaceScanFiles", 500),
   };
 }

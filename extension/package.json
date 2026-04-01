@@ -33,6 +33,8 @@
     "onCommand:slopguard.symbolImpact",
     "onCommand:slopguard.quickActions",
     "onCommand:slopguard.openOutput",
+    "onCommand:slopguard.analyzeWorkspace",
+    "onCommand:slopguard.clearWorkspaceDiagnostics",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
@@ -53,6 +55,14 @@
       {
         "command": "slopguard.openOutput",
         "title": "SlopGuard: Open Output"
+      },
+      {
+        "command": "slopguard.analyzeWorkspace",
+        "title": "SlopGuard: Scan Workspace"
+      },
+      {
+        "command": "slopguard.clearWorkspaceDiagnostics",
+        "title": "SlopGuard: Clear Workspace Scan Markers"
       }
     ],
     "keybindings": [
@@ -141,6 +151,13 @@
           "minimum": 100,
           "maximum": 200000,
           "description": "Maximum lines of code sent to the engine for large files (file scope / fallbacks). Prevents very large buffers from slowing analysis."
+        },
+        "slopguard.maxWorkspaceScanFiles": {
+          "type": "number",
+          "default": 500,
+          "minimum": 10,
+          "maximum": 10000,
+          "description": "Maximum files analyzed by “SlopGuard: Scan Workspace” (findings appear in Problems for files that are not open)."
         },
         "slopguard.maxIssuesDetailed": {
           "type": "number",
