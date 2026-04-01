@@ -1,7 +1,13 @@
 import * as vscode from "vscode";
-import { resolveAnalysisSettings } from "./config";
+import { syncUserCliLaunchers, installCliForAllTerminals } from "./cliUserInstall";
+import {
+  applySlopguardEnginePathToIntegratedTerminals,
+  resolveAnalysisSettings,
+  setSlopguardExtensionInstallRoot,
+} from "./config";
 import { analyzeSelection } from "./commands/analyzeSelection";
 import { analyzeWorkspace } from "./commands/analyzeWorkspace";
+import { copyScanCliToClipboard, runScanInIntegratedTerminal } from "./commands/engineCli";
 import { runQuickActions } from "./commands/quickActions";
 import { showSymbolImpact } from "./commands/symbolImpact";
 import { maybeShowFirstRunHint } from "./firstRun";
@@ -12,6 +18,10 @@ import { WorkspaceContextIndexer } from "./workspaceContext";
 let idleTimeout: ReturnType<typeof setTimeout> | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
+  setSlopguardExtensionInstallRoot(context.extensionPath);
+  syncUserCliLaunchers();
+  applySlopguardEnginePathToIntegratedTerminals(context);
+
   const output = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
   const diagnostics = vscode.languages.createDiagnosticCollection("slopguard");
   const indexer = new WorkspaceContextIndexer(context, output);
@@ -42,6 +52,15 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("SlopGuard: Cleared workspace scan markers (Problems).");
   });
 
+  const copyScanCliCommand = vscode.commands.registerCommand("slopguard.copyScanCli", () =>
+    copyScanCliToClipboard()
+  );
+  const runScanTerminalCommand = vscode.commands.registerCommand("slopguard.runScanInTerminal", () =>
+    runScanInIntegratedTerminal()
+  );
+  const installUserCliCommand = vscode.commands.registerCommand("slopguard.installUserCli", () =>
+    installCliForAllTerminals()
+  );
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBar.text = "$(shield) SlopGuard";
   statusBar.tooltip = "SlopGuard — click for Quick Actions";
@@ -88,10 +107,17 @@ export function activate(context: vscode.ExtensionContext) {
 
   const configListener = vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("slopguard")) {
+      syncUserCliLaunchers();
+      applySlopguardEnginePathToIntegratedTerminals(context);
       const settings = resolveAnalysisSettings();
       output.appendLine(`Auto analyze on save: ${settings.autoAnalyzeOnSave ? "enabled" : "disabled"}`);
       output.appendLine(`Auto analyze on idle: ${settings.autoAnalyzeOnIdle ? "enabled" : "disabled"}`);
     }
+  });
+
+  const workspaceFoldersListener = vscode.workspace.onDidChangeWorkspaceFolders(() => {
+    syncUserCliLaunchers();
+    applySlopguardEnginePathToIntegratedTerminals(context);
   });
 
   context.subscriptions.push(
@@ -101,11 +127,15 @@ export function activate(context: vscode.ExtensionContext) {
     openOutputCommand,
     analyzeWorkspaceCommand,
     clearDiagnosticsCommand,
+    copyScanCliCommand,
+    runScanTerminalCommand,
+    installUserCliCommand,
     diagnostics,
     saveListener,
     changeListener,
     deleteListener,
     configListener,
+    workspaceFoldersListener,
     output,
     statusBar
   );

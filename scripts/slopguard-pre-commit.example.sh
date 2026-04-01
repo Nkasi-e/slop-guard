@@ -8,4 +8,5 @@ if [[ ! -x "$ENGINE" ]]; then
   echo "slopguard: engine not found at $ENGINE (build with: cd engine && cargo build --release)"
   exit 2
 fi
+# Default CLI output is lint-style text; add --format json for machine parsing.
 exec "$ENGINE" scan "$ROOT" --max-files 2000

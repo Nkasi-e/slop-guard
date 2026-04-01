@@ -8,6 +8,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
 
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum ScanFormat {
+    #[default]
+    /// `path:line:col: level (type): title` + indented notes (IDE / eslint-style).
+    Text,
+    Json,
+}
+
 const DEFAULT_MAX_FILES: usize = 2000;
 const MAX_FILE_BYTES: u64 = 2 * 1024 * 1024;
 /// Hard cap on directory walk entries so unignored build trees cannot hang the scan.
@@ -30,15 +38,104 @@ struct ScanReport {
     results: Vec<ScanFileResult>,
 }
 
+fn print_scan_help() {
+    eprintln!(
+        "\
+Usage: slopguard-engine scan [OPTIONS] [ROOT]
+
+Scan a directory (default ROOT: .). Prints lint-style issues to stdout by default.
+
+Options:
+  --format <text|json>   Output format (default: text). Use json for machine parsing.
+  --max-files <N>        Cap analyzed files (default: {DEFAULT_MAX_FILES})
+  --min-confidence <N>   Minimum issue confidence 0..1 (default: 0)
+  --no-fail              Exit 0 even when issues are found
+  -h, --help             Show this help
+
+Text format (default), one block per issue:
+  path:line:column: level (issue-type): title
+    note: …
+    help: …
+
+Line/column are 1-based when the issue has a snippet line; otherwise line and column are 0.
+
+Summary counts are printed to stderr.
+"
+    );
+}
+
+fn severity_for_issue_type(issue_type: Option<&str>) -> &'static str {
+    match issue_type {
+        Some(t)
+            if t.eq_ignore_ascii_case("bug-risk")
+                || t.eq_ignore_ascii_case("security")
+                || t.eq_ignore_ascii_case("correctness") =>
+        {
+            "error"
+        }
+        Some(t) if t.eq_ignore_ascii_case("readability") => "note",
+        _ => "warning",
+    }
+}
+
+fn primary_line(issue: &Issue) -> usize {
+    issue
+        .snippet_start_line
+        .or(issue.snippet_end_line)
+        .filter(|&l| l > 0)
+        .unwrap_or(0)
+}
+
+fn print_text_report(report: &ScanReport) {
+    for file in &report.results {
+        for issue in &file.issues {
+            let line = primary_line(issue);
+            let col = if line > 0 { 1 } else { 0 };
+            let level = severity_for_issue_type(issue.issue_type.as_deref());
+            let kind = issue.issue_type.as_deref().unwrap_or("issue");
+            println!(
+                "{}:{}:{}: {} ({}): {}",
+                file.path, line, col, level, kind, issue.issue
+            );
+            for note in &issue.explanation {
+                println!("  note: {note}");
+            }
+            if let Some(s) = &issue.suggestion {
+                println!("  help: {s}");
+            }
+            println!();
+        }
+    }
+}
+
 pub fn run(args: Vec<String>) -> ! {
     let mut root = PathBuf::from(".");
     let mut max_files = DEFAULT_MAX_FILES;
     let mut min_confidence = 0.0_f64;
     let mut no_fail = false;
+    let mut format = ScanFormat::Text;
 
     let mut it = args.into_iter();
     while let Some(a) = it.next() {
         match a.as_str() {
+            "--help" | "-h" => {
+                print_scan_help();
+                process::exit(0);
+            }
+            "--format" | "-f" => {
+                let Some(v) = it.next() else {
+                    eprintln!("slopguard-engine scan: --format requires text or json");
+                    process::exit(2);
+                };
+                format = match v.as_str() {
+                    "json" => ScanFormat::Json,
+                    "text" => ScanFormat::Text,
+                    _ => {
+                        eprintln!("slopguard-engine scan: --format must be text or json");
+                        process::exit(2);
+                    }
+                };
+            }
             "--max-files" => {
                 let Some(v) = it.next().and_then(|s| s.parse().ok()) else {
                     eprintln!("slopguard-engine scan: --max-files requires a number");
@@ -148,13 +245,24 @@ pub fn run(args: Vec<String>) -> ! {
         results,
     };
 
-    match serde_json::to_string_pretty(&report) {
-        Ok(json) => println!("{json}"),
-        Err(e) => {
-            eprintln!("slopguard-engine scan: failed to serialize report: {e}");
-            process::exit(2);
-        }
+    match format {
+        ScanFormat::Json => match serde_json::to_string_pretty(&report) {
+            Ok(json) => println!("{json}"),
+            Err(e) => {
+                eprintln!("slopguard-engine scan: failed to serialize report: {e}");
+                process::exit(2);
+            }
+        },
+        ScanFormat::Text => print_text_report(&report),
     }
+
+    eprintln!(
+        "slopguard: {} issue(s) in {} file(s), {} file(s) scanned under {}",
+        issue_count,
+        report.results.len(),
+        report.files_scanned,
+        report.root
+    );
 
     if issue_count > 0 && !no_fail {
         process::exit(1);

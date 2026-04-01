@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import { resolveAnalysisSettings } from "../config";
 import { analyzeSelection } from "./analyzeSelection";
 import { analyzeWorkspace } from "./analyzeWorkspace";
+import { installCliForAllTerminals } from "../cliUserInstall";
+import { copyScanCliToClipboard, runScanInIntegratedTerminal } from "./engineCli";
 import { showSymbolImpact } from "./symbolImpact";
 import { WorkspaceContextIndexer } from "../workspaceContext";
 
@@ -32,6 +34,24 @@ export async function runQuickActions(
       label: "$(clear-all) Clear workspace scan markers",
       description: "Remove red/yellow SlopGuard lines from Scan workspace",
       detail: "Does not change your code",
+    },
+    {
+      id: "installUserCli",
+      label: "$(cloud-download) Install CLI for all terminals",
+      description: "Terminal.app, iTerm, SSH, PowerShell — one-time + PATH",
+      detail: "Writes ~/.local/bin/slopguard-engine (synced when the extension runs)",
+    },
+    {
+      id: "copyScanCli",
+      label: "$(terminal) Copy CLI scan command (full path)",
+      description: "Git hooks, CI, or when you prefer a one-liner",
+      detail: "No install; uses absolute engine path",
+    },
+    {
+      id: "runScanInTerminal",
+      label: "$(play) Run CLI scan in integrated terminal",
+      description: "slopguard-engine scan . (PATH set by the extension)",
+      detail: "Exit code 1 if issues; cargo dev engine uses cargo run …",
     },
     {
       id: "symbolImpact",
@@ -80,6 +100,15 @@ export async function runQuickActions(
     case "clearWorkspaceDiagnostics":
       diagnostics.clear();
       vscode.window.showInformationMessage("SlopGuard: Cleared workspace scan markers (Problems).");
+      break;
+    case "installUserCli":
+      await installCliForAllTerminals();
+      break;
+    case "copyScanCli":
+      await copyScanCliToClipboard();
+      break;
+    case "runScanInTerminal":
+      await runScanInIntegratedTerminal();
       break;
     case "symbolImpact":
       await showSymbolImpact(output);

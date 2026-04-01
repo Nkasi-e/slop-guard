@@ -35,6 +35,9 @@
     "onCommand:slopguard.openOutput",
     "onCommand:slopguard.analyzeWorkspace",
     "onCommand:slopguard.clearWorkspaceDiagnostics",
+    "onCommand:slopguard.copyScanCli",
+    "onCommand:slopguard.runScanInTerminal",
+    "onCommand:slopguard.installUserCli",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
@@ -63,6 +66,18 @@
       {
         "command": "slopguard.clearWorkspaceDiagnostics",
         "title": "SlopGuard: Clear Workspace Scan Markers"
+      },
+      {
+        "command": "slopguard.copyScanCli",
+        "title": "SlopGuard: Copy CLI Scan Command"
+      },
+      {
+        "command": "slopguard.runScanInTerminal",
+        "title": "SlopGuard: Run CLI Scan in Integrated Terminal"
+      },
+      {
+        "command": "slopguard.installUserCli",
+        "title": "SlopGuard: Install CLI for All Terminals"
       }
     ],
     "keybindings": [

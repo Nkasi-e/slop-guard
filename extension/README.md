@@ -136,6 +136,36 @@ Optional: if you want toast notifications, set `slopguard.showAutoNotifications`
 4. **`cargo run`** — if `engine/Cargo.toml` exists in the workspace (developer workflow).
 5. **WASM fallback** — `runtime/wasm/slopguard_engine.wasm` for platforms without a native binary. *Uses pattern + complexity analyzers; AST-heavy rules need the native engine.*
 
+### CLI (`scan`) on any terminal (macOS, Linux, Windows)
+
+`scan` uses the **native** engine only (not WASM). After a one-time setup you can run the same command everywhere — **Terminal.app**, **iTerm**, **SSH**, **bash**, **zsh**, **PowerShell**, **cmd**, **fish** (after you add `~/.local/bin` the fish way).
+
+1. **Install the launcher (once)**  
+   Command Palette → **`SlopGuard: Install CLI for All Terminals`** (or Quick Actions → *Install CLI for all terminals*).  
+   This creates:
+   - `~/.config/slopguard/launch` and `launch.cmd` — kept **up to date** whenever SlopGuard runs (engine path / bundled binary / `slopguard.enginePath` / workspace `cargo` dev).
+   - A link or copy at **`~/.local/bin/slopguard-engine`** (Windows: `slopguard-engine.cmd` in the same folder).
+
+2. **Put `~/.local/bin` on your PATH** (once per machine) if the extension says it isn’t there yet. Use **Copy PATH setup** from the notification, or add the line it shows for bash, zsh, PowerShell, or fish.
+
+3. Open a **new** terminal and from a project root:
+
+```bash
+slopguard-engine scan .
+```
+
+Default output is **lint-style** (one block per issue: `path:line:col: level (type): title`, then `note:` / `help:` lines). A short summary goes to **stderr**; exit code **`1`** if any issues were found (good for hooks).
+
+For the previous **JSON** report: `slopguard-engine scan . --format json`. Use `slopguard-engine scan --help` for flags (`--max-files`, `--min-confidence`, `--no-fail`, etc.).
+
+**Also available**
+
+- **Integrated terminals** in Cursor/VS Code still get the engine directory on `PATH` automatically (including macOS zsh + `path_helper` via shell integration).
+- **`SlopGuard: Run CLI Scan in Integrated Terminal`** — runs `slopguard-engine scan .` in the editor (cwd = workspace root).
+- **`SlopGuard: Copy CLI Scan Command`** — full-path one-liner for CI or scripts without relying on `~/.local/bin`.
+
+**Note:** Set **`slopguard.enginePath`** or use a build that ships the native binary for your OS if you hit WASM-only installs.
+
 LLM enrichment is still **optional** and **off by default** (see below).
 
 ## Optional LLM narrative layer (disabled by default)
