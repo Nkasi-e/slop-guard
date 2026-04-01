@@ -16,6 +16,42 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ---
 
+## [0.0.6] - 2026-04-01
+
+### Added
+
+- **Workspace scan + Problems panel**
+  - **SlopGuard: Scan Workspace** (`slopguard.analyzeWorkspace`) walks the open folder with a language glob (`ts/tsx/js/jsx/py/go/rs/java/rb`), skips heavy dirs (`node_modules`, `target`, `dist`, `.git`, …), and respects **`slopguard.maxWorkspaceScanFiles`** (default 500, configurable up to 10k).
+  - Findings show up as **Diagnostics** in the **Problems** view for each file — including files you have **not** opened — so you get repo-wide visibility without opening every buffer.
+  - Progress notification + **SlopGuard output** summary (files scanned, issue count, any per-file errors).
+- **Codebase index (`WorkspaceContextIndexer`)**
+  - Background index of the workspace: **imports / exports**, **call sites**, **blocking-wrapper hints**, **N+1-style hints**, **retry-policy hints**, **call-graph edges**, and counts for **unresolved dynamic calls/imports** (bounded scan, disk-backed).
+  - **Warm start** on extension activation: load cache from disk, then refresh; **incremental** updates when you edit, **save**, or **delete** files so the index tracks reality without full blocking rescans.
+  - **Persisted** under the extension’s workspace storage (`workspace-index-v*.json`) so reopening the project recovers quickly.
+  - **Analysis context** built per file with a **time budget** so the UI stays responsive while still feeding cross-file data to the engine.
+- **Cross-file analysis in the editor**
+  - **Analyze Selection** (and auto analyze on save / idle) passes this **`AnalysisContext`** into the engine when the indexer is available, so rules that depend on **neighboring files** (e.g. N+1 across service boundaries, async-blocking through helpers, retry consistency along call chains) can fire from normal in-editor runs — not only from a full workspace scan.
+- **Workspace scan uses the same context path**
+  - Each scanned file is analyzed **with `getAnalysisContextForFilePath`** so closed-file scans get the same cross-repo signals as open-editor analysis (within indexer coverage and budgets).
+- **Extension — CLI distribution & ergonomics**
+  - **SlopGuard: Copy CLI Scan Command** — full-path `scan` one-liner for CI, hooks, or shells without the editor `PATH`.
+  - **SlopGuard: Run CLI Scan in Integrated Terminal** — runs `slopguard-engine scan .` (or `cargo run …` for dev engines).
+  - **SlopGuard: Install CLI for All Terminals** — writes `~/.config/slopguard/launch` (+ `launch.cmd` on Windows), symlink/copy into **`~/.local/bin`**, kept in sync when the extension runs; PATH snippets for bash, zsh, fish, PowerShell, cmd.
+- **Engine — `scan` CLI UX**
+  - Default output is **lint-style** (`path:line:col: level (type): title`, then `note:` / `help:` lines); summary on **stderr**.
+  - **`--format json`** for the previous structured report; **`slopguard-engine scan --help`**.
+
+### Changed
+
+- Integrated terminals: engine directory on **`PATH`** using process creation + **shell integration** (fixes macOS login zsh / `path_helper` dropping `PATH`).
+- **`extension/src/config.ts`**: `setSlopguardExtensionInstallRoot` so bundled `runtime/` resolves from the real extension install path; **`resolveNativeLaunchSpec`** for user-level CLI launchers (binary vs `cargo run` dev engine).
+
+### Fixed
+
+- **CLI discovery:** external terminals could not find `slopguard-engine` until install/PATH; documented and automated via **Install CLI for All Terminals**.
+
+---
+
 ## [0.0.5] - 2026-03-24
 
 ### Added
