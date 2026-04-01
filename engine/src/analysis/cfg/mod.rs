@@ -40,6 +40,7 @@ impl Analyzer for CfgAnalyzer {
             language: lang,
             cfg: &cfg,
             symbols: &symbols,
+            analysis_context: request.analysis_context.as_ref(),
         };
         run_rules(&context)
     }

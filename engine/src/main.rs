@@ -1,12 +1,21 @@
 mod analysis;
 mod protocol;
+#[cfg(not(target_family = "wasm"))]
+mod scan;
 
 use crate::analysis::run_all_analyzers;
 use crate::protocol::{AnalyzeRequest, AnalyzeResponse, Issue};
 use std::io::{self, BufRead, Read, Write};
 
 fn main() {
-    let serve_mode = std::env::args().any(|arg| arg == "--serve");
+    let args: Vec<String> = std::env::args().skip(1).collect();
+
+    #[cfg(not(target_family = "wasm"))]
+    if args.first().is_some_and(|a| a == "scan") {
+        scan::run(args.into_iter().skip(1).collect());
+    }
+
+    let serve_mode = args.iter().any(|arg| arg == "--serve");
     if serve_mode {
         run_serve_mode();
         return;
@@ -87,6 +96,7 @@ fn parse_request(raw: &str) -> AnalyzeRequest {
             code: raw.to_string(),
             language_id: None,
             document_key: None,
+            analysis_context: None,
         },
     }
 }

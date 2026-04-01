@@ -7,11 +7,92 @@ pub struct AnalyzeRequest {
     pub language_id: Option<String>,
     #[serde(default)]
     pub document_key: Option<String>,
+    #[serde(default)]
+    pub analysis_context: Option<AnalysisContext>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct AnalyzeResponse {
     pub issues: Vec<Issue>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalysisContext {
+    #[serde(default)]
+    pub current_file: Option<String>,
+    #[serde(default)]
+    pub dependency_neighbors: Vec<String>,
+    #[serde(default)]
+    pub blocking_wrapper_hints: Vec<BlockingWrapperHint>,
+    #[serde(default)]
+    pub n_plus_one_hints: Vec<NPlusOneHint>,
+    #[serde(default)]
+    pub retry_policy_hints: Vec<RetryPolicyHint>,
+    #[serde(default)]
+    pub call_graph_edges: Vec<CallGraphEdge>,
+    #[serde(default)]
+    pub index_stale: bool,
+    #[serde(default)]
+    pub unresolved_dynamic_calls: usize,
+    #[serde(default)]
+    pub unresolved_dynamic_imports: usize,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockingWrapperHint {
+    pub symbol: String,
+    #[serde(default)]
+    pub source_file: Option<String>,
+    #[serde(default)]
+    pub confidence_tier: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct NPlusOneHint {
+    pub symbol: String,
+    #[serde(default)]
+    pub source_file: Option<String>,
+    #[serde(default)]
+    pub boundary: Option<String>,
+    #[serde(default)]
+    pub confidence_tier: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RetryPolicyHint {
+    pub symbol: String,
+    #[serde(default)]
+    pub source_file: Option<String>,
+    #[serde(default)]
+    pub confidence_tier: Option<String>,
+    #[serde(default)]
+    pub has_backoff: bool,
+    #[serde(default)]
+    pub has_jitter: bool,
+    #[serde(default)]
+    pub has_cap: bool,
+    #[serde(default)]
+    pub propagates_cancellation: bool,
+    #[serde(default)]
+    pub filters_transient_errors: bool,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CallGraphEdge {
+    pub caller: String,
+    pub callee: String,
+    pub source_file: String,
+    #[serde(default)]
+    pub target_file: Option<String>,
+    #[serde(default)]
+    pub boundary: Option<String>,
+    #[serde(default)]
+    pub confidence_tier: Option<String>,
 }
 
 #[derive(Debug, Serialize, Clone)]

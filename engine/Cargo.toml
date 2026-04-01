@@ -1,6 +1,6 @@
 [package]
 name = "slopguard-engine"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [[bin]]
@@ -36,3 +36,6 @@ tree-sitter-go = { version = "0.21", optional = true }
 tree-sitter-rust = { version = "0.21", optional = true }
 tree-sitter-ruby = { version = "0.21", optional = true }
 tree-sitter-java = { version = "0.21", optional = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+ignore = "0.4"

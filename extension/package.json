@@ -2,7 +2,7 @@
   "name": "slopguard",
   "displayName": "SlopGuard",
   "description": "Local-first static AI reviewer for VS Code: catches code slop, complexity hotspots, and maintainability issues before PRs.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "nkasi-labs",
   "author": "Emmanuel Nkasi",
   "license": "MIT",
@@ -33,6 +33,11 @@
     "onCommand:slopguard.symbolImpact",
     "onCommand:slopguard.quickActions",
     "onCommand:slopguard.openOutput",
+    "onCommand:slopguard.analyzeWorkspace",
+    "onCommand:slopguard.clearWorkspaceDiagnostics",
+    "onCommand:slopguard.copyScanCli",
+    "onCommand:slopguard.runScanInTerminal",
+    "onCommand:slopguard.installUserCli",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
@@ -53,6 +58,26 @@
       {
         "command": "slopguard.openOutput",
         "title": "SlopGuard: Open Output"
+      },
+      {
+        "command": "slopguard.analyzeWorkspace",
+        "title": "SlopGuard: Scan Workspace"
+      },
+      {
+        "command": "slopguard.clearWorkspaceDiagnostics",
+        "title": "SlopGuard: Clear Workspace Scan Markers"
+      },
+      {
+        "command": "slopguard.copyScanCli",
+        "title": "SlopGuard: Copy CLI Scan Command"
+      },
+      {
+        "command": "slopguard.runScanInTerminal",
+        "title": "SlopGuard: Run CLI Scan in Integrated Terminal"
+      },
+      {
+        "command": "slopguard.installUserCli",
+        "title": "SlopGuard: Install CLI for All Terminals"
       }
     ],
     "keybindings": [
@@ -141,6 +166,13 @@
           "minimum": 100,
           "maximum": 200000,
           "description": "Maximum lines of code sent to the engine for large files (file scope / fallbacks). Prevents very large buffers from slowing analysis."
+        },
+        "slopguard.maxWorkspaceScanFiles": {
+          "type": "number",
+          "default": 500,
+          "minimum": 10,
+          "maximum": 10000,
+          "description": "Maximum files analyzed by “SlopGuard: Scan Workspace” (findings appear in Problems for files that are not open)."
         },
         "slopguard.maxIssuesDetailed": {
           "type": "number",

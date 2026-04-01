@@ -31,6 +31,53 @@ export type AnalyzeInput = {
   languageId: string;
   /** Stable key used by the engine for incremental AST parsing cache. */
   documentKey?: string;
+  /** Optional workspace/project signals for cross-file context rules. */
+  analysisContext?: AnalysisContext;
+};
+
+export type BlockingWrapperHint = {
+  symbol: string;
+  sourceFile?: string;
+  confidenceTier?: "high" | "medium" | "low";
+};
+
+export type AnalysisContext = {
+  currentFile?: string;
+  dependencyNeighbors: string[];
+  blockingWrapperHints: BlockingWrapperHint[];
+  nPlusOneHints: NPlusOneHint[];
+  retryPolicyHints: RetryPolicyHint[];
+  callGraphEdges: CallGraphEdge[];
+  indexStale: boolean;
+  unresolvedDynamicCalls: number;
+  unresolvedDynamicImports: number;
+};
+
+export type NPlusOneHint = {
+  symbol: string;
+  sourceFile?: string;
+  boundary?: "repository" | "service" | "cross-module" | "package-boundary";
+  confidenceTier?: "high" | "medium" | "low";
+};
+
+export type RetryPolicyHint = {
+  symbol: string;
+  sourceFile?: string;
+  confidenceTier?: "high" | "medium" | "low";
+  hasBackoff: boolean;
+  hasJitter: boolean;
+  hasCap: boolean;
+  propagatesCancellation: boolean;
+  filtersTransientErrors: boolean;
+};
+
+export type CallGraphEdge = {
+  caller: string;
+  callee: string;
+  sourceFile: string;
+  targetFile?: string;
+  boundary?: "same-package" | "package-boundary" | "cross-module";
+  confidenceTier?: "high" | "medium" | "low";
 };
 
 export type EngineCommand = {
@@ -61,4 +108,6 @@ export type AnalysisSettings = {
   showFirstRunHint: boolean;
   /** Full detail for first N issues; rest get one-line summaries. */
   maxIssuesDetailed: number;
+  /** Max source files to analyze in “Scan workspace” (closed files use Problems panel). */
+  maxWorkspaceScanFiles: number;
 };
